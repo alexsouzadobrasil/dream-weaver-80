@@ -1,9 +1,12 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { AnimatePresence } from "framer-motion";
 import HeroSection from "@/components/HeroSection";
 import DreamForm from "@/components/DreamForm";
 import DreamResult from "@/components/DreamResult";
 import LoadingOverlay from "@/components/LoadingOverlay";
+import LoginPrompt from "@/components/LoginPrompt";
 import heroBg from "@/assets/hero-bg.jpg";
+import { toast } from "sonner";
 
 // Mock interpretations — will be replaced by real OpenAI integration
 const mockInterpretations: Record<string, { symbols: string; emotions: string; message: string }> = {
@@ -42,7 +45,17 @@ const mockInterpretations: Record<string, { symbols: string; emotions: string; m
 const Index = () => {
   const [step, setStep] = useState<"hero" | "form" | "loading" | "result">("hero");
   const [interpretation, setInterpretation] = useState<any>(null);
+  const [lastDream, setLastDream] = useState<{ title: string; emotion: string } | null>(null);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const formRef = useRef<HTMLDivElement>(null);
+
+  // Load last dream from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem("lastDream");
+    if (saved) {
+      try { setLastDream(JSON.parse(saved)); } catch {}
+    }
+  }, []);
 
   const handleStart = () => {
     setStep("form");
@@ -55,35 +68,66 @@ const Index = () => {
     setStep("loading");
     window.scrollTo({ top: 0, behavior: "smooth" });
 
-    // Simulate API call
+    // Simulate API call with loading animation duration
     setTimeout(() => {
       const mock = mockInterpretations[dream.emotion] || mockInterpretations.confusao;
-      setInterpretation({
+      const result = {
         title: dream.title,
         emotion: dream.emotion,
         symbols: mock.symbols,
         emotions: mock.emotions,
         message: mock.message,
         thumbnailUrl: heroBg,
-      });
+      };
+      setInterpretation(result);
+      
+      // Save last dream
+      const dreamSummary = { title: dream.title, emotion: dream.emotion };
+      setLastDream(dreamSummary);
+      localStorage.setItem("lastDream", JSON.stringify(dreamSummary));
+
       setStep("result");
-    }, 4000);
+
+      // Show login prompt after a delay
+      setTimeout(() => {
+        setShowLoginPrompt(true);
+      }, 2000);
+    }, 12000); // Longer to match the animation journey
   };
 
   const handleNewDream = () => {
     setStep("form");
-    setInterpretation(null);
+    setShowLoginPrompt(false);
     setTimeout(() => {
       formRef.current?.scrollIntoView({ behavior: "smooth" });
     }, 100);
   };
 
+  const handleGoHome = () => {
+    setStep("hero");
+    setShowLoginPrompt(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleLogin = () => {
+    toast.info("Login será implementado com Lovable Cloud!", {
+      description: "Em breve você poderá criar sua conta com Google ou Facebook.",
+    });
+    setShowLoginPrompt(false);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-mystic">
-      {step === "hero" && <HeroSection onStart={handleStart} />}
+      {step === "hero" && <HeroSection onStart={handleStart} lastDream={lastDream} />}
 
       {step === "form" && (
-        <div ref={formRef}>
+        <div ref={formRef} className="min-h-screen flex flex-col">
+          <button
+            onClick={handleGoHome}
+            className="self-start flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-sm font-display px-6 pt-6"
+          >
+            ← Início
+          </button>
           <DreamForm onSubmit={handleSubmit} isLoading={false} />
         </div>
       )}
@@ -91,8 +135,21 @@ const Index = () => {
       {step === "loading" && <LoadingOverlay />}
 
       {step === "result" && interpretation && (
-        <DreamResult interpretation={interpretation} onNewDream={handleNewDream} />
+        <DreamResult
+          interpretation={interpretation}
+          onNewDream={handleNewDream}
+          onGoHome={handleGoHome}
+        />
       )}
+
+      <AnimatePresence>
+        {showLoginPrompt && (
+          <LoginPrompt
+            onClose={() => setShowLoginPrompt(false)}
+            onLogin={handleLogin}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };
