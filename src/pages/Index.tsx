@@ -63,16 +63,20 @@ const Index = () => {
     setTimeout(() => formRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
   };
 
-  const handleSubmit = (dream: { title: string; text: string; emotion: string }) => {
+  const handleSubmit = (dreamText: string) => {
     setStep("loading");
     window.scrollTo({ top: 0, behavior: "smooth" });
 
+    // Simulate API that auto-generates title and emotion
     setTimeout(() => {
-      const mock = mockInterpretations[dream.emotion] || mockInterpretations.confusao;
+      const emotions = ["medo", "alegria", "tristeza", "confusao", "paz", "ansiedade"];
+      const autoEmotion = emotions[Math.floor(Math.random() * emotions.length)];
+      const autoTitle = dreamText.slice(0, 40) + (dreamText.length > 40 ? "..." : "");
+      const mock = mockInterpretations[autoEmotion] || mockInterpretations.confusao;
       const fullInterpretation = `${mock.symbols}\n\n${mock.emotions}\n\n${mock.message}`;
       const result = {
-        title: dream.title,
-        emotion: dream.emotion,
+        title: autoTitle,
+        emotion: autoEmotion,
         symbols: mock.symbols,
         emotions: mock.emotions,
         message: mock.message,
@@ -80,17 +84,16 @@ const Index = () => {
       };
       setInterpretation(result);
 
-      // Save full dream entry to history
       const entry: DreamEntry = {
         id: Date.now().toString(),
-        title: dream.title,
-        emotion: dream.emotion,
-        dreamText: dream.text,
+        title: autoTitle,
+        emotion: autoEmotion,
+        dreamText: dreamText,
         interpretation: fullInterpretation,
         createdAt: new Date().toISOString(),
       };
       setDreamHistory(prev => {
-        const updated = [entry, ...prev].slice(0, 20); // keep max 20 in storage
+        const updated = [entry, ...prev].slice(0, 20);
         localStorage.setItem("dreamHistory", JSON.stringify(updated));
         return updated;
       });
