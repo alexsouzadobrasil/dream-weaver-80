@@ -1,7 +1,9 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
-import { Moon, Sparkles, Star } from "lucide-react";
+import { Moon, Sparkles } from "lucide-react";
 import DreamHistoryCard from "./DreamHistoryCard";
+import DreamDetailModal from "./DreamDetailModal";
+import type { DreamEntry } from "./DreamHistoryCard";
 
 // Animated star component
 const AnimatedStar = ({ delay, x, y, size }: { delay: number; x: string; y: string; size: number }) => (
@@ -19,11 +21,7 @@ const ShootingStar = ({ delay }: { delay: number }) => (
     className="absolute w-1 h-1 bg-primary rounded-full"
     style={{ top: `${Math.random() * 40}%`, left: `${Math.random() * 60 + 20}%` }}
     initial={{ opacity: 0, x: 0, y: 0 }}
-    animate={{
-      opacity: [0, 1, 1, 0],
-      x: [0, -150, -300],
-      y: [0, 80, 160],
-    }}
+    animate={{ opacity: [0, 1, 1, 0], x: [0, -150, -300], y: [0, 80, 160] }}
     transition={{ duration: 1.5, delay, repeat: Infinity, repeatDelay: 8 + Math.random() * 6 }}
   >
     <div className="w-16 h-[1px] bg-gradient-to-r from-primary/80 to-transparent absolute right-0 top-1/2 -translate-y-1/2" />
@@ -44,20 +42,9 @@ const CosmicDust = () => (
       <motion.div
         key={i}
         className="absolute w-1 h-1 rounded-full bg-primary/30"
-        style={{
-          left: `${Math.random() * 100}%`,
-          top: `${Math.random() * 100}%`,
-        }}
-        animate={{
-          y: [0, -30, 0],
-          x: [0, Math.random() * 20 - 10, 0],
-          opacity: [0.1, 0.5, 0.1],
-        }}
-        transition={{
-          duration: 5 + Math.random() * 5,
-          delay: Math.random() * 5,
-          repeat: Infinity,
-        }}
+        style={{ left: `${Math.random() * 100}%`, top: `${Math.random() * 100}%` }}
+        animate={{ y: [0, -30, 0], x: [0, Math.random() * 20 - 10, 0], opacity: [0.1, 0.5, 0.1] }}
+        transition={{ duration: 5 + Math.random() * 5, delay: Math.random() * 5, repeat: Infinity }}
       />
     ))}
   </div>
@@ -71,11 +58,8 @@ const SleepingSilhouette = () => (
     animate={{ opacity: 1 }}
     transition={{ duration: 2 }}
   >
-    {/* Bed / ground */}
     <div className="relative">
-      {/* Sleeping person shape */}
       <svg viewBox="0 0 300 120" className="w-full" fill="none">
-        {/* Body under blanket */}
         <motion.path
           d="M50 100 Q70 40 130 50 Q180 55 220 70 Q260 82 280 100 Z"
           fill="hsl(var(--secondary))"
@@ -88,28 +72,15 @@ const SleepingSilhouette = () => (
           ]}}
           transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
         />
-        {/* Head */}
-        <motion.circle
-          cx="70" cy="50" r="22"
-          fill="hsl(var(--muted-foreground) / 0.4)"
-          animate={{ cy: [50, 48, 50] }}
-          transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-        />
-        {/* Pillow */}
+        <motion.circle cx="70" cy="50" r="22" fill="hsl(var(--muted-foreground) / 0.4)" animate={{ cy: [50, 48, 50] }} transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }} />
         <ellipse cx="70" cy="72" rx="35" ry="10" fill="hsl(var(--secondary))" stroke="hsl(var(--border))" strokeWidth="1" />
       </svg>
-
-      {/* Zzz animation */}
       {[0, 1, 2].map((i) => (
         <motion.span
           key={i}
           className="absolute text-primary/60 font-display font-bold"
           style={{ left: `${25 + i * 8}%`, bottom: `${60 + i * 15}%`, fontSize: `${12 + i * 4}px` }}
-          animate={{
-            opacity: [0, 1, 0],
-            y: [0, -20, -40],
-            x: [0, 5, 10],
-          }}
+          animate={{ opacity: [0, 1, 0], y: [0, -20, -40], x: [0, 5, 10] }}
           transition={{ duration: 2.5, delay: i * 0.8, repeat: Infinity }}
         >
           Z
@@ -128,9 +99,7 @@ const SoulRising = () => (
     transition={{ duration: 6, delay: 3, repeat: Infinity, repeatDelay: 4 }}
   >
     <div className="relative">
-      {/* Soul glow */}
       <div className="w-16 h-24 rounded-full bg-primary/20 blur-xl absolute -inset-4" />
-      {/* Soul figure */}
       <svg viewBox="0 0 60 90" width="48" height="72" className="opacity-60">
         <ellipse cx="30" cy="18" rx="12" ry="14" fill="hsl(var(--primary) / 0.3)" />
         <path d="M20 30 Q18 50 22 70 Q30 85 38 70 Q42 50 40 30 Z" fill="hsl(var(--primary) / 0.2)" />
@@ -143,56 +112,44 @@ const SoulRising = () => (
 const CosmicOrb = ({ size, color, x, y, delay }: { size: number; color: string; x: string; y: string; delay: number }) => (
   <motion.div
     className="absolute rounded-full"
-    style={{
-      width: size, height: size, left: x, top: y,
-      background: `radial-gradient(circle at 35% 35%, ${color}, transparent)`,
-    }}
+    style={{ width: size, height: size, left: x, top: y, background: `radial-gradient(circle at 35% 35%, ${color}, transparent)` }}
     animate={{ scale: [1, 1.1, 1], opacity: [0.4, 0.7, 0.4] }}
     transition={{ duration: 5, delay, repeat: Infinity }}
   />
 );
 
-interface DreamHistory {
-  title: string;
-  emotion: string;
-}
-
 interface HeroSectionProps {
   onStart: () => void;
-  dreamHistory?: DreamHistory[];
+  dreamHistory?: DreamEntry[];
 }
 
 const HeroSection = ({ onStart, dreamHistory = [] }: HeroSectionProps) => {
   const [scene, setScene] = useState(0);
+  const [selectedDream, setSelectedDream] = useState<DreamEntry | null>(null);
 
-  // Auto-advance scene for cinematic effect
   useEffect(() => {
-    const timer = setInterval(() => {
-      setScene((s) => (s + 1) % 3);
-    }, 8000);
+    const timer = setInterval(() => setScene((s) => (s + 1) % 3), 8000);
     return () => clearInterval(timer);
   }, []);
+
+  // Show only the 3 most recent
+  const visibleDreams = dreamHistory.slice(0, 3);
 
   return (
     <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-gradient-mystic">
       {/* Star field */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {stars.map((s, i) => (
-          <AnimatedStar key={i} {...s} />
-        ))}
+        {stars.map((s, i) => <AnimatedStar key={i} {...s} />)}
         <ShootingStar delay={2} />
         <ShootingStar delay={7} />
         <ShootingStar delay={13} />
       </div>
 
       <CosmicDust />
-
-      {/* Cosmic orbs */}
       <CosmicOrb size={120} color="hsl(260 50% 55% / 0.15)" x="10%" y="15%" delay={0} />
       <CosmicOrb size={80} color="hsl(43 80% 55% / 0.1)" x="75%" y="25%" delay={2} />
       <CosmicOrb size={60} color="hsl(200 60% 50% / 0.1)" x="85%" y="60%" delay={4} />
 
-      {/* Nebula effect */}
       <motion.div
         className="absolute inset-0 pointer-events-none"
         animate={{ opacity: [0.3, 0.5, 0.3] }}
@@ -202,7 +159,6 @@ const HeroSection = ({ onStart, dreamHistory = [] }: HeroSectionProps) => {
         <div className="absolute bottom-1/3 right-1/4 w-48 h-48 rounded-full bg-primary/5 blur-[80px]" />
       </motion.div>
 
-      {/* Moon */}
       <motion.div
         className="absolute top-12 right-8 md:top-20 md:right-1/4"
         animate={{ y: [0, -8, 0] }}
@@ -214,11 +170,9 @@ const HeroSection = ({ onStart, dreamHistory = [] }: HeroSectionProps) => {
         </div>
       </motion.div>
 
-      {/* Sleeping person & soul */}
       <SleepingSilhouette />
       <SoulRising />
 
-      {/* Main content */}
       <div className="relative z-10 text-center px-6 max-w-lg mx-auto mb-32">
         <motion.h1
           initial={{ opacity: 0, y: 30 }}
@@ -253,8 +207,8 @@ const HeroSection = ({ onStart, dreamHistory = [] }: HeroSectionProps) => {
           Interpretar meu sonho
         </motion.button>
 
-        {/* Dream history */}
-        {dreamHistory.length > 0 && (
+        {/* Dream history - max 3 */}
+        {visibleDreams.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -264,17 +218,25 @@ const HeroSection = ({ onStart, dreamHistory = [] }: HeroSectionProps) => {
             <p className="text-xs text-muted-foreground mb-2 font-display">
               ✨ Sonhos interpretados
             </p>
-            {dreamHistory.map((dream, i) => (
-              <DreamHistoryCard
-                key={i}
-                title={dream.title}
-                emotion={dream.emotion}
-                index={i}
-              />
-            ))}
+            <AnimatePresence mode="popLayout">
+              {visibleDreams.map((dream, i) => (
+                <DreamHistoryCard
+                  key={dream.id}
+                  dream={dream}
+                  index={i}
+                  onClick={() => setSelectedDream(dream)}
+                />
+              ))}
+            </AnimatePresence>
           </motion.div>
         )}
       </div>
+
+      {/* Dream detail modal */}
+      <DreamDetailModal
+        dream={selectedDream}
+        onClose={() => setSelectedDream(null)}
+      />
     </section>
   );
 };
