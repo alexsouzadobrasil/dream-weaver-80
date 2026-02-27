@@ -45,15 +45,15 @@ const mockInterpretations: Record<string, { symbols: string; emotions: string; m
 const Index = () => {
   const [step, setStep] = useState<"hero" | "form" | "loading" | "result">("hero");
   const [interpretation, setInterpretation] = useState<any>(null);
-  const [lastDream, setLastDream] = useState<{ title: string; emotion: string } | null>(null);
+  const [dreamHistory, setDreamHistory] = useState<{ title: string; emotion: string }[]>([]);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const formRef = useRef<HTMLDivElement>(null);
 
   // Load last dream from localStorage
   useEffect(() => {
-    const saved = localStorage.getItem("lastDream");
+    const saved = localStorage.getItem("dreamHistory");
     if (saved) {
-      try { setLastDream(JSON.parse(saved)); } catch {}
+      try { setDreamHistory(JSON.parse(saved)); } catch {}
     }
   }, []);
 
@@ -81,10 +81,13 @@ const Index = () => {
       };
       setInterpretation(result);
       
-      // Save last dream
+      // Save to dream history
       const dreamSummary = { title: dream.title, emotion: dream.emotion };
-      setLastDream(dreamSummary);
-      localStorage.setItem("lastDream", JSON.stringify(dreamSummary));
+      setDreamHistory(prev => {
+        const updated = [dreamSummary, ...prev];
+        localStorage.setItem("dreamHistory", JSON.stringify(updated));
+        return updated;
+      });
 
       setStep("result");
 
@@ -118,7 +121,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-mystic">
-      {step === "hero" && <HeroSection onStart={handleStart} lastDream={lastDream} />}
+      {step === "hero" && <HeroSection onStart={handleStart} dreamHistory={dreamHistory} />}
 
       {step === "form" && (
         <div ref={formRef} className="min-h-screen flex flex-col">

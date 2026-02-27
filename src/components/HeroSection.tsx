@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import { Moon, Sparkles, Star } from "lucide-react";
+import DreamHistoryCard from "./DreamHistoryCard";
 
 // Animated star component
 const AnimatedStar = ({ delay, x, y, size }: { delay: number; x: string; y: string; size: number }) => (
@@ -151,12 +152,17 @@ const CosmicOrb = ({ size, color, x, y, delay }: { size: number; color: string; 
   />
 );
 
-interface HeroSectionProps {
-  onStart: () => void;
-  lastDream?: { title: string; emotion: string } | null;
+interface DreamHistory {
+  title: string;
+  emotion: string;
 }
 
-const HeroSection = ({ onStart, lastDream }: HeroSectionProps) => {
+interface HeroSectionProps {
+  onStart: () => void;
+  dreamHistory?: DreamHistory[];
+}
+
+const HeroSection = ({ onStart, dreamHistory = [] }: HeroSectionProps) => {
   const [scene, setScene] = useState(0);
 
   // Auto-advance scene for cinematic effect
@@ -247,16 +253,25 @@ const HeroSection = ({ onStart, lastDream }: HeroSectionProps) => {
           Interpretar meu sonho
         </motion.button>
 
-        {/* Last dream preview */}
-        {lastDream && (
+        {/* Dream history */}
+        {dreamHistory.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 1.2 }}
-            className="mt-8 p-4 rounded-xl bg-secondary/50 border border-border/50 backdrop-blur-sm"
+            className="mt-8 w-full space-y-2"
           >
-            <p className="text-xs text-muted-foreground mb-1">Último sonho interpretado</p>
-            <p className="text-sm text-foreground font-display">{lastDream.title}</p>
+            <p className="text-xs text-muted-foreground mb-2 font-display">
+              ✨ Sonhos interpretados
+            </p>
+            {dreamHistory.map((dream, i) => (
+              <DreamHistoryCard
+                key={i}
+                title={dream.title}
+                emotion={dream.emotion}
+                index={i}
+              />
+            ))}
           </motion.div>
         )}
       </div>
