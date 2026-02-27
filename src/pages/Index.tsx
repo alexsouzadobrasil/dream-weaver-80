@@ -7,6 +7,7 @@ import LoadingOverlay from "@/components/LoadingOverlay";
 import LoginPrompt from "@/components/LoginPrompt";
 import heroBg from "@/assets/hero-bg.jpg";
 import { toast } from "sonner";
+import type { DreamEntry } from "@/components/DreamHistoryCard";
 
 // Mock interpretations — will be replaced by real OpenAI integration
 const mockInterpretations: Record<string, { symbols: string; emotions: string; message: string }> = {
@@ -45,11 +46,11 @@ const mockInterpretations: Record<string, { symbols: string; emotions: string; m
 const Index = () => {
   const [step, setStep] = useState<"hero" | "form" | "loading" | "result">("hero");
   const [interpretation, setInterpretation] = useState<any>(null);
-  const [dreamHistory, setDreamHistory] = useState<{ title: string; emotion: string }[]>([]);
+  const [dreamHistory, setDreamHistory] = useState<DreamEntry[]>([]);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const formRef = useRef<HTMLDivElement>(null);
 
-  // Load last dream from localStorage
+  // Load dream history from localStorage
   useEffect(() => {
     const saved = localStorage.getItem("dreamHistory");
     if (saved) {
@@ -59,18 +60,16 @@ const Index = () => {
 
   const handleStart = () => {
     setStep("form");
-    setTimeout(() => {
-      formRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, 100);
+    setTimeout(() => formRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
   };
 
   const handleSubmit = (dream: { title: string; text: string; emotion: string }) => {
     setStep("loading");
     window.scrollTo({ top: 0, behavior: "smooth" });
 
-    // Simulate API call with loading animation duration
     setTimeout(() => {
       const mock = mockInterpretations[dream.emotion] || mockInterpretations.confusao;
+      const fullInterpretation = `${mock.symbols}\n\n${mock.emotions}\n\n${mock.message}`;
       const result = {
         title: dream.title,
         emotion: dream.emotion,
@@ -80,30 +79,31 @@ const Index = () => {
         thumbnailUrl: heroBg,
       };
       setInterpretation(result);
-      
-      // Save to dream history
-      const dreamSummary = { title: dream.title, emotion: dream.emotion };
+
+      // Save full dream entry to history
+      const entry: DreamEntry = {
+        id: Date.now().toString(),
+        title: dream.title,
+        emotion: dream.emotion,
+        dreamText: dream.text,
+        interpretation: fullInterpretation,
+        createdAt: new Date().toISOString(),
+      };
       setDreamHistory(prev => {
-        const updated = [dreamSummary, ...prev];
+        const updated = [entry, ...prev].slice(0, 20); // keep max 20 in storage
         localStorage.setItem("dreamHistory", JSON.stringify(updated));
         return updated;
       });
 
       setStep("result");
-
-      // Show login prompt after a delay
-      setTimeout(() => {
-        setShowLoginPrompt(true);
-      }, 2000);
-    }, 12000); // Longer to match the animation journey
+      setTimeout(() => setShowLoginPrompt(true), 2000);
+    }, 12000);
   };
 
   const handleNewDream = () => {
     setStep("form");
     setShowLoginPrompt(false);
-    setTimeout(() => {
-      formRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, 100);
+    setTimeout(() => formRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
   };
 
   const handleGoHome = () => {
@@ -147,10 +147,7 @@ const Index = () => {
 
       <AnimatePresence>
         {showLoginPrompt && (
-          <LoginPrompt
-            onClose={() => setShowLoginPrompt(false)}
-            onLogin={handleLogin}
-          />
+          <LoginPrompt onClose={() => setShowLoginPrompt(false)} onLogin={handleLogin} />
         )}
       </AnimatePresence>
     </div>
