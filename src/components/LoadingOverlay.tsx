@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
-import { Moon, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
+import { playMysticAmbient } from "@/lib/sounds";
 
 const phases = [
   { text: "Adormecendo...", subtitle: "Sua mente se acalma" },
@@ -23,9 +24,7 @@ const SpaceStars = () => (
           left: `${Math.random() * 100}%`,
           top: `${Math.random() * 100}%`,
         }}
-        animate={{
-          opacity: [0.2, 1, 0.2],
-        }}
+        animate={{ opacity: [0.2, 1, 0.2] }}
         transition={{
           duration: 1.5 + Math.random() * 2,
           delay: Math.random() * 2,
@@ -41,7 +40,6 @@ const WarpLines = () => (
   <div className="absolute inset-0 overflow-hidden pointer-events-none">
     {Array.from({ length: 20 }).map((_, i) => {
       const angle = (i / 20) * 360;
-      const rad = (angle * Math.PI) / 180;
       return (
         <motion.div
           key={i}
@@ -54,16 +52,8 @@ const WarpLines = () => (
             transformOrigin: 'center',
             rotate: `${angle}deg`,
           }}
-          animate={{
-            height: [0, 80, 0],
-            opacity: [0, 0.6, 0],
-          }}
-          transition={{
-            duration: 1.5,
-            delay: i * 0.1,
-            repeat: Infinity,
-            repeatDelay: 1,
-          }}
+          animate={{ height: [0, 80, 0], opacity: [0, 0.6, 0] }}
+          transition={{ duration: 1.5, delay: i * 0.1, repeat: Infinity, repeatDelay: 1 }}
         />
       );
     })}
@@ -72,23 +62,17 @@ const WarpLines = () => (
 
 // Soul figure ascending
 const AscendingSoul = ({ phase }: { phase: number }) => (
-  <motion.div className="relative w-20 h-28 mx-auto mb-8">
+  <motion.div className="relative w-24 h-32 mx-auto mb-8">
     {/* Glow aura */}
     <motion.div
-      className="absolute -inset-6 rounded-full"
-      style={{
-        background: 'radial-gradient(circle, hsl(var(--primary) / 0.2) 0%, transparent 70%)',
-      }}
-      animate={{
-        scale: [1, 1.3, 1],
-        opacity: [0.3, 0.6, 0.3],
-      }}
+      className="absolute -inset-8 rounded-full"
+      style={{ background: 'radial-gradient(circle, hsl(var(--primary) / 0.2) 0%, transparent 70%)' }}
+      animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.6, 0.3] }}
       transition={{ duration: 3, repeat: Infinity }}
     />
 
     {/* Soul body */}
     <motion.svg viewBox="0 0 60 90" className="w-full h-full" fill="none">
-      {/* Head */}
       <motion.circle
         cx="30" cy="20" r="14"
         fill="hsl(var(--primary) / 0.4)"
@@ -97,7 +81,6 @@ const AscendingSoul = ({ phase }: { phase: number }) => (
         animate={{ r: [14, 15, 14] }}
         transition={{ duration: 2, repeat: Infinity }}
       />
-      {/* Body - ethereal */}
       <motion.path
         d="M18 32 Q16 50 20 68 Q28 85 40 68 Q44 50 42 32 Z"
         fill="hsl(var(--primary) / 0.2)"
@@ -118,20 +101,10 @@ const AscendingSoul = ({ phase }: { phase: number }) => (
     {Array.from({ length: 6 }).map((_, i) => (
       <motion.div
         key={i}
-        className="absolute w-1 h-1 rounded-full bg-primary/50"
-        style={{
-          left: `${20 + Math.random() * 60}%`,
-          top: `${Math.random() * 100}%`,
-        }}
-        animate={{
-          y: [0, -15, 0],
-          opacity: [0.2, 0.8, 0.2],
-        }}
-        transition={{
-          duration: 2 + Math.random() * 2,
-          delay: Math.random() * 2,
-          repeat: Infinity,
-        }}
+        className="absolute w-1.5 h-1.5 rounded-full bg-primary/50"
+        style={{ left: `${20 + Math.random() * 60}%`, top: `${Math.random() * 100}%` }}
+        animate={{ y: [0, -15, 0], opacity: [0.2, 0.8, 0.2] }}
+        transition={{ duration: 2 + Math.random() * 2, delay: Math.random() * 2, repeat: Infinity }}
       />
     ))}
   </motion.div>
@@ -151,7 +124,7 @@ const EarthView = () => (
 
 // Progress bar
 const ProgressBar = ({ progress }: { progress: number }) => (
-  <div className="w-48 h-1 rounded-full bg-secondary overflow-hidden mx-auto mt-6">
+  <div className="w-56 h-1.5 rounded-full bg-secondary overflow-hidden mx-auto mt-6">
     <motion.div
       className="h-full rounded-full bg-primary"
       initial={{ width: 0 }}
@@ -166,6 +139,8 @@ const LoadingOverlay = () => {
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
+    playMysticAmbient();
+
     const phaseInterval = setInterval(() => {
       setPhase((p) => {
         if (p >= phases.length - 1) {
@@ -192,16 +167,10 @@ const LoadingOverlay = () => {
       animate={{ opacity: 1 }}
       className="min-h-screen flex flex-col items-center justify-center px-6 relative overflow-hidden bg-gradient-mystic"
     >
-      {/* Space background */}
       <SpaceStars />
-      
-      {/* Warp effect during space phase */}
       {phase >= 2 && <WarpLines />}
-
-      {/* Earth shrinking away */}
       {phase >= 2 && <EarthView />}
 
-      {/* Nebula glow */}
       <motion.div
         className="absolute inset-0 pointer-events-none"
         animate={{ opacity: [0.2, 0.4, 0.2] }}
@@ -211,9 +180,7 @@ const LoadingOverlay = () => {
         <div className="absolute bottom-1/3 right-1/3 w-36 h-36 rounded-full bg-primary/10 blur-[60px]" />
       </motion.div>
 
-      {/* Main content */}
       <div className="relative z-10 flex flex-col items-center">
-        {/* Soul ascending */}
         <motion.div
           animate={{ y: phase >= 1 ? [0, -10, 0] : 0 }}
           transition={{ duration: 3, repeat: Infinity }}
@@ -221,7 +188,6 @@ const LoadingOverlay = () => {
           <AscendingSoul phase={phase} />
         </motion.div>
 
-        {/* Phase text */}
         <AnimatePresence mode="wait">
           <motion.div
             key={phase}
@@ -231,10 +197,10 @@ const LoadingOverlay = () => {
             transition={{ duration: 0.6 }}
             className="text-center"
           >
-            <h3 className="text-xl md:text-2xl font-display font-bold text-gradient-gold mb-2">
+            <h3 className="text-2xl md:text-3xl font-display font-bold text-gradient-gold mb-2">
               {phases[phase]?.text}
             </h3>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-base text-muted-foreground">
               {phases[phase]?.subtitle}
             </p>
           </motion.div>
@@ -242,13 +208,12 @@ const LoadingOverlay = () => {
 
         <ProgressBar progress={progress} />
 
-        {/* Sparkle */}
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
           className="mt-6"
         >
-          <Sparkles className="w-5 h-5 text-primary/40" />
+          <Sparkles className="w-6 h-6 text-primary/40" />
         </motion.div>
       </div>
     </motion.section>

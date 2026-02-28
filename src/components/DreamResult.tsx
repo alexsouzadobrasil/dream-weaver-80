@@ -1,5 +1,7 @@
 import { motion } from "framer-motion";
-import { Sparkles, Heart, MessageCircle, Eye, Home, ArrowLeft } from "lucide-react";
+import { Sparkles, Heart, MessageCircle, Eye, Home, ArrowLeft, Share2, Gift } from "lucide-react";
+import { playReveal } from "@/lib/sounds";
+import { useEffect } from "react";
 
 interface DreamInterpretation {
   title: string;
@@ -17,6 +19,30 @@ interface DreamResultProps {
 }
 
 const DreamResult = ({ interpretation, onNewDream, onGoHome }: DreamResultProps) => {
+  useEffect(() => {
+    playReveal();
+  }, []);
+
+  const shareText = `🌙 Jerry interpretou meu sonho: "${interpretation.title}"\n\nDescubra o que seus sonhos significam em jerry.com.br`;
+  const shareUrl = 'https://jerry.com.br';
+
+  const handleShare = async (platform: string) => {
+    const encoded = encodeURIComponent(shareText);
+    const encodedUrl = encodeURIComponent(shareUrl);
+    const urls: Record<string, string> = {
+      whatsapp: `https://wa.me/?text=${encoded}%20${encodedUrl}`,
+      twitter: `https://twitter.com/intent/tweet?text=${encoded}&url=${encodedUrl}`,
+      facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encoded}`,
+    };
+    if (platform === 'native' && navigator.share) {
+      try {
+        await navigator.share({ title: 'Jerry - Entendendo seus sonhos', text: shareText, url: shareUrl });
+      } catch {}
+      return;
+    }
+    window.open(urls[platform], '_blank', 'noopener,noreferrer');
+  };
+
   return (
     <motion.section
       initial={{ opacity: 0 }}
@@ -48,9 +74,9 @@ const DreamResult = ({ interpretation, onNewDream, onGoHome }: DreamResultProps)
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           onClick={onGoHome}
-          className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-6 text-sm font-display"
+          className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-6 text-base font-display"
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeft className="w-5 h-5" />
           Início
         </motion.button>
 
@@ -58,7 +84,7 @@ const DreamResult = ({ interpretation, onNewDream, onGoHome }: DreamResultProps)
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="text-2xl md:text-3xl font-display font-bold text-gradient-gold text-center mb-6"
+          className="text-3xl md:text-4xl font-display font-bold text-gradient-gold text-center mb-6"
         >
           ✨ Sua interpretação
         </motion.h2>
@@ -77,7 +103,7 @@ const DreamResult = ({ interpretation, onNewDream, onGoHome }: DreamResultProps)
           />
         </motion.div>
 
-        <h3 className="text-xl font-display font-semibold text-foreground mb-5 text-center">
+        <h3 className="text-2xl font-display font-semibold text-foreground mb-5 text-center">
           {interpretation.title}
         </h3>
 
@@ -87,13 +113,13 @@ const DreamResult = ({ interpretation, onNewDream, onGoHome }: DreamResultProps)
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="bg-gradient-card rounded-xl p-5 border border-border"
+            className="bg-gradient-card rounded-xl p-6 border border-border"
           >
-            <div className="flex items-center gap-2 mb-2">
-              <Eye className="w-4 h-4 text-primary" />
-              <h4 className="font-display font-semibold text-foreground text-sm">Significados Simbólicos</h4>
+            <div className="flex items-center gap-2 mb-3">
+              <Eye className="w-5 h-5 text-primary" />
+              <h4 className="font-display font-semibold text-foreground text-base">Significados Simbólicos</h4>
             </div>
-            <p className="text-sm text-muted-foreground leading-relaxed">{interpretation.symbols}</p>
+            <p className="text-base text-muted-foreground leading-relaxed">{interpretation.symbols}</p>
           </motion.div>
 
           {/* Emotions */}
@@ -101,13 +127,13 @@ const DreamResult = ({ interpretation, onNewDream, onGoHome }: DreamResultProps)
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
-            className="bg-gradient-card rounded-xl p-5 border border-border"
+            className="bg-gradient-card rounded-xl p-6 border border-border"
           >
-            <div className="flex items-center gap-2 mb-2">
-              <Heart className="w-4 h-4 text-mystic" />
-              <h4 className="font-display font-semibold text-foreground text-sm">Emoções</h4>
+            <div className="flex items-center gap-2 mb-3">
+              <Heart className="w-5 h-5 text-mystic" />
+              <h4 className="font-display font-semibold text-foreground text-base">Emoções</h4>
             </div>
-            <p className="text-sm text-muted-foreground leading-relaxed">{interpretation.emotions}</p>
+            <p className="text-base text-muted-foreground leading-relaxed">{interpretation.emotions}</p>
           </motion.div>
 
           {/* Message */}
@@ -115,13 +141,72 @@ const DreamResult = ({ interpretation, onNewDream, onGoHome }: DreamResultProps)
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6 }}
-            className="bg-gradient-card rounded-xl p-5 border border-border"
+            className="bg-gradient-card rounded-xl p-6 border border-border"
           >
-            <div className="flex items-center gap-2 mb-2">
-              <MessageCircle className="w-4 h-4 text-gold-light" />
-              <h4 className="font-display font-semibold text-foreground text-sm">Possível Mensagem</h4>
+            <div className="flex items-center gap-2 mb-3">
+              <MessageCircle className="w-5 h-5 text-gold-light" />
+              <h4 className="font-display font-semibold text-foreground text-base">Possível Mensagem</h4>
             </div>
-            <p className="text-sm text-muted-foreground leading-relaxed">{interpretation.message}</p>
+            <p className="text-base text-muted-foreground leading-relaxed">{interpretation.message}</p>
+          </motion.div>
+
+          {/* Donation / share card */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.75 }}
+            className="bg-gradient-card rounded-xl p-6 border border-primary/20 relative overflow-hidden"
+          >
+            {/* Subtle glow */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-1 bg-gradient-to-r from-transparent via-primary/40 to-transparent rounded-full" />
+
+            <div className="flex items-center gap-2 mb-3">
+              <Gift className="w-5 h-5 text-primary" />
+              <h4 className="font-display font-semibold text-foreground text-base">Ajude o Jerry 💛</h4>
+            </div>
+            <p className="text-base text-muted-foreground leading-relaxed mb-4">
+              Ajude-nos a manter esse serviço gratuito e a ajudar mais pessoas a entenderem seus sonhos. Faça uma doação para{" "}
+              <span className="text-primary font-semibold">doar@jerry.com.br</span>{" "}
+              ou compartilhe com alguém que precisa. ✨
+            </p>
+
+            {/* Share buttons */}
+            <div className="flex flex-wrap gap-2">
+              <motion.button
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                onClick={() => handleShare('whatsapp')}
+                className="flex items-center gap-2 px-4 py-3 rounded-lg bg-[hsl(142_70%_35%)] text-foreground font-display text-sm font-semibold transition-all"
+              >
+                💬 WhatsApp
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                onClick={() => handleShare('twitter')}
+                className="flex items-center gap-2 px-4 py-3 rounded-lg bg-secondary text-foreground font-display text-sm font-semibold border border-border transition-all"
+              >
+                𝕏 Twitter
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                onClick={() => handleShare('facebook')}
+                className="flex items-center gap-2 px-4 py-3 rounded-lg bg-[hsl(220_60%_45%)] text-foreground font-display text-sm font-semibold transition-all"
+              >
+                📘 Facebook
+              </motion.button>
+              {typeof navigator !== 'undefined' && navigator.share && (
+                <motion.button
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => handleShare('native')}
+                  className="flex items-center gap-2 px-4 py-3 rounded-lg bg-accent text-accent-foreground font-display text-sm font-semibold transition-all"
+                >
+                  <Share2 className="w-4 h-4" /> Compartilhar
+                </motion.button>
+              )}
+            </div>
           </motion.div>
         </div>
 
@@ -130,18 +215,18 @@ const DreamResult = ({ interpretation, onNewDream, onGoHome }: DreamResultProps)
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.97 }}
             onClick={onGoHome}
-            className="flex-1 py-3 rounded-lg bg-secondary text-foreground font-display text-sm font-semibold border border-border hover:border-primary/30 transition-all flex items-center justify-center gap-2"
+            className="flex-1 py-4 rounded-xl bg-secondary text-foreground font-display text-base font-semibold border border-border hover:border-primary/30 transition-all flex items-center justify-center gap-2"
           >
-            <Home className="w-4 h-4" />
+            <Home className="w-5 h-5" />
             Voltar ao início
           </motion.button>
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.97 }}
             onClick={onNewDream}
-            className="flex-1 py-3 rounded-lg bg-primary text-primary-foreground font-display text-sm font-semibold glow-gold transition-all flex items-center justify-center gap-2"
+            className="flex-1 py-4 rounded-xl bg-primary text-primary-foreground font-display text-base font-semibold glow-gold transition-all flex items-center justify-center gap-2"
           >
-            <Sparkles className="w-4 h-4" />
+            <Sparkles className="w-5 h-5" />
             Novo sonho
           </motion.button>
         </div>

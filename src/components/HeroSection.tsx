@@ -4,6 +4,7 @@ import { Moon, Sparkles } from "lucide-react";
 import DreamHistoryCard from "./DreamHistoryCard";
 import DreamDetailModal from "./DreamDetailModal";
 import type { DreamEntry } from "./DreamHistoryCard";
+import { playClick } from "@/lib/sounds";
 
 // Animated star component
 const AnimatedStar = ({ delay, x, y, size }: { delay: number; x: string; y: string; size: number }) => (
@@ -15,20 +16,47 @@ const AnimatedStar = ({ delay, x, y, size }: { delay: number; x: string; y: stri
   />
 );
 
-// Shooting star
-const ShootingStar = ({ delay }: { delay: number }) => (
-  <motion.div
-    className="absolute w-1 h-1 bg-primary rounded-full"
-    style={{ top: `${Math.random() * 40}%`, left: `${Math.random() * 60 + 20}%` }}
-    initial={{ opacity: 0, x: 0, y: 0 }}
-    animate={{ opacity: [0, 1, 1, 0], x: [0, -150, -300], y: [0, 80, 160] }}
-    transition={{ duration: 1.5, delay, repeat: Infinity, repeatDelay: 8 + Math.random() * 6 }}
-  >
-    <div className="w-16 h-[1px] bg-gradient-to-r from-primary/80 to-transparent absolute right-0 top-1/2 -translate-y-1/2" />
-  </motion.div>
-);
+// Enhanced shooting star / comet
+const ShootingStar = ({ delay }: { delay: number }) => {
+  const startY = Math.random() * 35;
+  const startX = Math.random() * 50 + 30;
+  return (
+    <motion.div
+      className="absolute"
+      style={{ top: `${startY}%`, left: `${startX}%` }}
+      initial={{ opacity: 0, x: 0, y: 0 }}
+      animate={{
+        opacity: [0, 0.3, 1, 1, 0.5, 0],
+        x: [0, -60, -180, -350, -500],
+        y: [0, 30, 90, 180, 280],
+      }}
+      transition={{ duration: 2.5, delay, repeat: Infinity, repeatDelay: 6 + Math.random() * 8, ease: "easeIn" }}
+    >
+      {/* Comet head glow */}
+      <div className="relative">
+        <div className="w-3 h-3 rounded-full bg-primary" style={{ boxShadow: '0 0 12px 4px hsl(43 80% 55% / 0.6), 0 0 30px 8px hsl(43 80% 55% / 0.3)' }} />
+        {/* Long luminous tail */}
+        <div className="absolute top-1/2 left-full -translate-y-1/2 w-32 h-[2px]"
+          style={{ background: 'linear-gradient(to right, hsl(43 80% 55% / 0.8), hsl(43 80% 55% / 0.3), hsl(260 50% 55% / 0.1), transparent)' }} />
+        {/* Secondary faint tail */}
+        <div className="absolute top-1/2 left-full -translate-y-1/2 w-20 h-[4px] blur-[2px]"
+          style={{ background: 'linear-gradient(to right, hsl(43 90% 70% / 0.4), transparent)' }} />
+        {/* Sparkle particles trail */}
+        {[0, 1, 2, 3].map(i => (
+          <motion.div
+            key={i}
+            className="absolute rounded-full bg-primary/60"
+            style={{ width: 2 - i * 0.3, height: 2 - i * 0.3, left: 10 + i * 12, top: (Math.random() - 0.5) * 6 }}
+            animate={{ opacity: [0.8, 0] }}
+            transition={{ duration: 0.5, delay: i * 0.08, repeat: Infinity }}
+          />
+        ))}
+      </div>
+    </motion.div>
+  );
+};
 
-const stars = Array.from({ length: 50 }, (_, i) => ({
+const stars = Array.from({ length: 60 }, (_, i) => ({
   delay: Math.random() * 5,
   x: `${Math.random() * 100}%`,
   y: `${Math.random() * 100}%`,
@@ -38,7 +66,7 @@ const stars = Array.from({ length: 50 }, (_, i) => ({
 // Floating particles (cosmic dust)
 const CosmicDust = () => (
   <div className="absolute inset-0 overflow-hidden pointer-events-none">
-    {Array.from({ length: 20 }).map((_, i) => (
+    {Array.from({ length: 25 }).map((_, i) => (
       <motion.div
         key={i}
         className="absolute w-1 h-1 rounded-full bg-primary/30"
@@ -50,7 +78,21 @@ const CosmicDust = () => (
   </div>
 );
 
-// Person sleeping silhouette (SVG-based)
+// Mystic nebula clouds
+const NebulaCloud = ({ x, y, color, size }: { x: string; y: string; color: string; size: number }) => (
+  <motion.div
+    className="absolute rounded-full pointer-events-none"
+    style={{
+      left: x, top: y, width: size, height: size,
+      background: `radial-gradient(circle, ${color}, transparent 70%)`,
+      filter: 'blur(40px)',
+    }}
+    animate={{ scale: [1, 1.2, 1], opacity: [0.15, 0.3, 0.15] }}
+    transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+  />
+);
+
+// Person sleeping silhouette
 const SleepingSilhouette = () => (
   <motion.div
     className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[280px] md:max-w-[320px]"
@@ -79,7 +121,7 @@ const SleepingSilhouette = () => (
         <motion.span
           key={i}
           className="absolute text-primary/60 font-display font-bold"
-          style={{ left: `${25 + i * 8}%`, bottom: `${60 + i * 15}%`, fontSize: `${12 + i * 4}px` }}
+          style={{ left: `${25 + i * 8}%`, bottom: `${60 + i * 15}%`, fontSize: `${14 + i * 5}px` }}
           animate={{ opacity: [0, 1, 0], y: [0, -20, -40], x: [0, 5, 10] }}
           transition={{ duration: 2.5, delay: i * 0.8, repeat: Infinity }}
         >
@@ -132,7 +174,6 @@ const HeroSection = ({ onStart, dreamHistory = [] }: HeroSectionProps) => {
     return () => clearInterval(timer);
   }, []);
 
-  // Show only the 3 most recent
   const visibleDreams = dreamHistory.slice(0, 3);
 
   return (
@@ -140,12 +181,20 @@ const HeroSection = ({ onStart, dreamHistory = [] }: HeroSectionProps) => {
       {/* Star field */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {stars.map((s, i) => <AnimatedStar key={i} {...s} />)}
-        <ShootingStar delay={2} />
-        <ShootingStar delay={7} />
-        <ShootingStar delay={13} />
+        <ShootingStar delay={1} />
+        <ShootingStar delay={4} />
+        <ShootingStar delay={8} />
+        <ShootingStar delay={12} />
+        <ShootingStar delay={16} />
       </div>
 
       <CosmicDust />
+
+      {/* Nebula clouds */}
+      <NebulaCloud x="5%" y="10%" color="hsl(260 50% 55% / 0.2)" size={300} />
+      <NebulaCloud x="70%" y="20%" color="hsl(43 80% 55% / 0.12)" size={250} />
+      <NebulaCloud x="40%" y="60%" color="hsl(200 60% 50% / 0.1)" size={200} />
+
       <CosmicOrb size={120} color="hsl(260 50% 55% / 0.15)" x="10%" y="15%" delay={0} />
       <CosmicOrb size={80} color="hsl(43 80% 55% / 0.1)" x="75%" y="25%" delay={2} />
       <CosmicOrb size={60} color="hsl(200 60% 50% / 0.1)" x="85%" y="60%" delay={4} />
@@ -178,16 +227,24 @@ const HeroSection = ({ onStart, dreamHistory = [] }: HeroSectionProps) => {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1.2 }}
-          className="text-4xl md:text-6xl font-display font-bold text-gradient-gold mb-4"
+          className="text-4xl md:text-6xl font-display font-bold text-gradient-gold mb-2"
         >
-          Entendo Sonho
+          Jerry
         </motion.h1>
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1, delay: 0.3 }}
+          className="text-lg md:text-xl font-display text-foreground/70 mb-6"
+        >
+          Entendendo seus sonhos
+        </motion.p>
 
         <motion.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: 0.4 }}
-          className="text-base md:text-lg text-muted-foreground mb-8 leading-relaxed"
+          transition={{ duration: 1, delay: 0.5 }}
+          className="text-lg md:text-xl text-muted-foreground mb-10 leading-relaxed"
         >
           Sua alma viaja enquanto você dorme.
           <br />
@@ -200,10 +257,10 @@ const HeroSection = ({ onStart, dreamHistory = [] }: HeroSectionProps) => {
           transition={{ duration: 0.6, delay: 0.8 }}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.97 }}
-          onClick={onStart}
-          className="inline-flex items-center gap-2 px-8 py-4 rounded-full bg-primary text-primary-foreground font-display text-lg font-semibold glow-gold transition-all"
+          onClick={() => { playClick(); onStart(); }}
+          className="inline-flex items-center gap-3 px-10 py-5 rounded-full bg-primary text-primary-foreground font-display text-xl font-semibold glow-gold transition-all"
         >
-          <Sparkles className="w-5 h-5" />
+          <Sparkles className="w-6 h-6" />
           Interpretar meu sonho
         </motion.button>
 
@@ -213,9 +270,9 @@ const HeroSection = ({ onStart, dreamHistory = [] }: HeroSectionProps) => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 1.2 }}
-            className="mt-8 w-full space-y-2"
+            className="mt-10 w-full space-y-3"
           >
-            <p className="text-xs text-muted-foreground mb-2 font-display">
+            <p className="text-sm text-muted-foreground mb-3 font-display">
               ✨ Sonhos interpretados
             </p>
             <AnimatePresence mode="popLayout">
@@ -224,7 +281,7 @@ const HeroSection = ({ onStart, dreamHistory = [] }: HeroSectionProps) => {
                   key={dream.id}
                   dream={dream}
                   index={i}
-                  onClick={() => setSelectedDream(dream)}
+                  onClick={() => { playClick(); setSelectedDream(dream); }}
                 />
               ))}
             </AnimatePresence>
@@ -232,7 +289,6 @@ const HeroSection = ({ onStart, dreamHistory = [] }: HeroSectionProps) => {
         )}
       </div>
 
-      {/* Dream detail modal */}
       <DreamDetailModal
         dream={selectedDream}
         onClose={() => setSelectedDream(null)}

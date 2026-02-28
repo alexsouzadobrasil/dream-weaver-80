@@ -45,7 +45,6 @@ interface DreamHistoryCardProps {
 
 const DreamHistoryCard = ({ dream, index, onClick, isExiting }: DreamHistoryCardProps) => {
   const blanketColor = emotionColors[dream.emotion] || "hsl(var(--secondary))";
-  const glowClass = emotionGlow[dream.emotion] || "";
 
   const formattedDate = (() => {
     try {
@@ -54,7 +53,6 @@ const DreamHistoryCard = ({ dream, index, onClick, isExiting }: DreamHistoryCard
     } catch { return ""; }
   })();
 
-  // Exit animation variants for the "soul leaving" effect
   const exitAnim = {
     opacity: 0,
     y: -30,
@@ -72,10 +70,9 @@ const DreamHistoryCard = ({ dream, index, onClick, isExiting }: DreamHistoryCard
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.97 }}
       onClick={onClick}
-      className={`relative w-full p-3 rounded-2xl bg-secondary/30 border border-border/30 backdrop-blur-md overflow-hidden text-left cursor-pointer transition-shadow duration-200 hover:${glowClass} hover:shadow-[0_0_20px_hsl(var(--primary)/0.12)] hover:border-border/60`}
+      className="relative w-full p-4 rounded-2xl bg-secondary/30 border border-border/30 backdrop-blur-md overflow-hidden text-left cursor-pointer transition-shadow duration-200 hover:shadow-[0_0_20px_hsl(var(--primary)/0.12)] hover:border-border/60"
       style={{ willChange: "transform, opacity" }}
     >
-      {/* Mini sleeping silhouette */}
       <div className="relative flex items-end gap-3">
         <div className="relative w-20 h-14 flex-shrink-0">
           <svg viewBox="0 0 300 120" className="w-full h-full" fill="none">
@@ -94,45 +91,26 @@ const DreamHistoryCard = ({ dream, index, onClick, isExiting }: DreamHistoryCard
               transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
             />
             <motion.circle
-              cx="70"
-              cy="50"
-              r="22"
+              cx="70" cy="50" r="22"
               fill="hsl(var(--muted-foreground) / 0.25)"
               animate={{ cy: [50, 48, 50] }}
               transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
             />
-            <ellipse
-              cx="70"
-              cy="72"
-              rx="35"
-              ry="10"
-              fill="hsl(var(--secondary) / 0.5)"
-              stroke="hsl(var(--border) / 0.2)"
-              strokeWidth="1"
-            />
+            <ellipse cx="70" cy="72" rx="35" ry="10" fill="hsl(var(--secondary) / 0.5)" stroke="hsl(var(--border) / 0.2)" strokeWidth="1" />
           </svg>
 
-          {/* Mini Zzz */}
           {[0, 1].map((i) => (
             <motion.span
               key={i}
               className="absolute text-primary/30 font-display font-bold"
-              style={{
-                left: `${55 + i * 12}%`,
-                bottom: `${50 + i * 20}%`,
-                fontSize: `${7 + i * 2}px`,
-              }}
-              animate={{
-                opacity: [0, 0.7, 0],
-                y: [0, -8, -16],
-              }}
+              style={{ left: `${55 + i * 12}%`, bottom: `${50 + i * 20}%`, fontSize: `${8 + i * 2}px` }}
+              animate={{ opacity: [0, 0.7, 0], y: [0, -8, -16] }}
               transition={{ duration: 2, delay: i * 0.6, repeat: Infinity }}
             >
               Z
             </motion.span>
           ))}
 
-          {/* Soul leaving animation on exit */}
           {isExiting && (
             <motion.div
               className="absolute left-1/2 -translate-x-1/2 bottom-1/2"
@@ -146,14 +124,14 @@ const DreamHistoryCard = ({ dream, index, onClick, isExiting }: DreamHistoryCard
         </div>
 
         <div className="flex-1 min-w-0 pb-1">
-          <div className="flex items-center gap-1 mb-0.5">
-            <span className="text-xs">{emotionEmoji[dream.emotion] || "💭"}</span>
-            <span className="text-xs text-muted-foreground/60 capitalize">{dream.emotion}</span>
+          <div className="flex items-center gap-1.5 mb-1">
+            <span className="text-base">{emotionEmoji[dream.emotion] || "💭"}</span>
+            <span className="text-sm text-muted-foreground/60 capitalize">{dream.emotion}</span>
             {formattedDate && (
-              <span className="text-[10px] text-muted-foreground/40 ml-auto">{formattedDate}</span>
+              <span className="text-xs text-muted-foreground/40 ml-auto">{formattedDate}</span>
             )}
           </div>
-          <p className="text-sm text-foreground font-display font-medium truncate">
+          <p className="text-base text-foreground font-display font-medium truncate">
             {dream.title}
           </p>
         </div>

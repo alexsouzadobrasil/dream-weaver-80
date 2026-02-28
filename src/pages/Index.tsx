@@ -4,17 +4,17 @@ import HeroSection from "@/components/HeroSection";
 import DreamForm from "@/components/DreamForm";
 import DreamResult from "@/components/DreamResult";
 import LoadingOverlay from "@/components/LoadingOverlay";
-import LoginPrompt from "@/components/LoginPrompt";
 import heroBg from "@/assets/hero-bg.jpg";
 import { toast } from "sonner";
 import type { DreamEntry } from "@/components/DreamHistoryCard";
 import { submitAudio, submitText, pollDreamStatus } from "@/lib/dreamApi";
+import { saveAudioLocally, removeAudio, getPendingAudios } from "@/lib/audioStorage";
+import { playMysticAmbient } from "@/lib/sounds";
 
 const Index = () => {
   const [step, setStep] = useState<"hero" | "form" | "loading" | "result">("hero");
   const [interpretation, setInterpretation] = useState<any>(null);
   const [dreamHistory, setDreamHistory] = useState<DreamEntry[]>([]);
-  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const formRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -22,17 +22,34 @@ const Index = () => {
     if (saved) {
       try { setDreamHistory(JSON.parse(saved)); } catch {}
     }
+    // Try resending pending audios on load
+    retryPendingAudios();
   }, []);
 
+  const retryPendingAudios = async () => {
+    try {
+      const pending = await getPendingAudios();
+      for (const item of pending) {
+        if (item.id && item.retries < 5) {
+          try {
+            const { dream_id, transcription } = await submitAudio(item.blob);
+            await removeAudio(item.id);
+            toast.success("Um sonho pendente foi reenviado com sucesso!");
+          } catch {
+            // Will retry next time
+          }
+        }
+      }
+    } catch {}
+  };
+
   const handleStart = () => {
+    playMysticAmbient();
     setStep("form");
     setTimeout(() => formRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
   };
 
   const processDream = async (dreamId: number, dreamText: string) => {
-    setStep("loading");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-
     try {
       const result = await pollDreamStatus(dreamId);
 
@@ -61,7 +78,6 @@ const Index = () => {
       });
 
       setStep("result");
-      setTimeout(() => setShowLoginPrompt(true), 2000);
     } catch (err: any) {
       toast.error(err.message || "Erro ao processar sonho");
       setStep("form");
@@ -69,14 +85,30 @@ const Index = () => {
   };
 
   const handleSubmitAudio = async (blob: Blob) => {
+    // Save audio locally FIRST — before any network call
+    let localId: number | null = null;
+    try {
+      localId = await saveAudioLocally(blob);
+    } catch {
+      // IndexedDB failed, continue anyway
+    }
+
     setStep("loading");
     window.scrollTo({ top: 0, behavior: "smooth" });
+
     try {
       const { dream_id, transcription } = await submitAudio(blob);
+      // Success — remove from local storage
+      if (localId) {
+        try { await removeAudio(localId); } catch {}
+      }
       const dreamText = transcription || "Sonho enviado por áudio";
       await processDream(dream_id, dreamText);
     } catch (err: any) {
-      toast.error(err.message || "Erro ao enviar áudio");
+      toast.error(
+        "Não foi possível enviar agora. Seu áudio está salvo e será reenviado automaticamente.",
+        { duration: 6000 }
+      );
       setStep("form");
     }
   };
@@ -95,21 +127,12 @@ const Index = () => {
 
   const handleNewDream = () => {
     setStep("form");
-    setShowLoginPrompt(false);
     setTimeout(() => formRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
   };
 
   const handleGoHome = () => {
     setStep("hero");
-    setShowLoginPrompt(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const handleLogin = () => {
-    toast.info("Login será implementado em breve!", {
-      description: "Em breve você poderá criar sua conta.",
-    });
-    setShowLoginPrompt(false);
   };
 
   return (
@@ -120,7 +143,7 @@ const Index = () => {
         <div ref={formRef} className="min-h-screen flex flex-col">
           <button
             onClick={handleGoHome}
-            className="self-start flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-sm font-display px-6 pt-6"
+            className="self-start flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-base font-display px-6 pt-6"
           >
             ← Início
           </button>
@@ -137,12 +160,6 @@ const Index = () => {
           onGoHome={handleGoHome}
         />
       )}
-
-      <AnimatePresence>
-        {showLoginPrompt && (
-          <LoginPrompt onClose={() => setShowLoginPrompt(false)} onLogin={handleLogin} />
-        )}
-      </AnimatePresence>
     </div>
   );
 };
