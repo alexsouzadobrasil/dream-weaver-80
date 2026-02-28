@@ -53,6 +53,8 @@
     --sidebar-accent-foreground: 45 30% 90%;
     --sidebar-border: 230 25% 18%;
     --sidebar-ring: 43 80% 55%;
+
+    font-size: 18px;
   }
 }
 

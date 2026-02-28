@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mic, Square, Send, Keyboard, ArrowLeft } from "lucide-react";
+import { playStartRecord, playStopRecord, playSend } from "@/lib/sounds";
 
 interface DreamFormProps {
   onSubmitAudio: (blob: Blob) => void;
@@ -8,7 +9,6 @@ interface DreamFormProps {
   isLoading: boolean;
 }
 
-const ACCEPTED_FORMATS = ['audio/mp3', 'audio/wav', 'audio/webm', 'audio/ogg', 'audio/m4a', 'audio/flac', 'audio/aac', 'audio/mpeg', 'audio/x-m4a'];
 const MAX_SIZE_MB = 25;
 
 const DreamForm = ({ onSubmitAudio, onSubmitText, isLoading }: DreamFormProps) => {
@@ -47,6 +47,7 @@ const DreamForm = ({ onSubmitAudio, onSubmitText, isLoading }: DreamFormProps) =
       setIsRecording(true);
       setRecordingTime(0);
       setAudioBlob(null);
+      playStartRecord();
 
       timerRef.current = setInterval(() => {
         setRecordingTime(prev => prev + 1);
@@ -59,6 +60,7 @@ const DreamForm = ({ onSubmitAudio, onSubmitText, isLoading }: DreamFormProps) =
   const stopRecording = useCallback(() => {
     mediaRecorderRef.current?.stop();
     setIsRecording(false);
+    playStopRecord();
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
@@ -66,23 +68,28 @@ const DreamForm = ({ onSubmitAudio, onSubmitText, isLoading }: DreamFormProps) =
   }, []);
 
   const handleSendAudio = () => {
-    if (audioBlob) onSubmitAudio(audioBlob);
+    if (audioBlob) {
+      playSend();
+      onSubmitAudio(audioBlob);
+    }
   };
 
   const handleSendText = (e: React.FormEvent) => {
     e.preventDefault();
-    if (text.trim()) onSubmitText(text.trim());
+    if (text.trim()) {
+      playSend();
+      onSubmitText(text.trim());
+    }
   };
 
   const formatTime = (s: number) => `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
 
-  // Pulsing rings for recording
   const PulseRings = () => (
     <>
       {[0, 1, 2].map(i => (
         <motion.div
           key={i}
-          className="absolute inset-0 rounded-full border border-primary/30"
+          className="absolute inset-0 rounded-full border-2 border-primary/30"
           animate={{ scale: [1, 1.5 + i * 0.3], opacity: [0.6, 0] }}
           transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.4, ease: "easeOut" }}
         />
@@ -99,10 +106,10 @@ const DreamForm = ({ onSubmitAudio, onSubmitText, isLoading }: DreamFormProps) =
       id="dream-form"
     >
       <div className="max-w-md mx-auto w-full text-center">
-        <h2 className="text-3xl md:text-4xl font-display font-bold text-gradient-gold mb-2">
+        <h2 className="text-3xl md:text-5xl font-display font-bold text-gradient-gold mb-3">
           Conte seu sonho
         </h2>
-        <p className="text-muted-foreground mb-12">
+        <p className="text-muted-foreground mb-12 text-lg">
           {mode === "audio" ? "Pressione o botão e conte seu sonho em voz alta" : "Descreva com o máximo de detalhes possível"}
         </p>
 
@@ -128,7 +135,7 @@ const DreamForm = ({ onSubmitAudio, onSubmitText, isLoading }: DreamFormProps) =
                   onClick={audioBlob && !isRecording ? () => { setAudioBlob(null); setRecordingTime(0); } : undefined}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className={`relative z-10 w-28 h-28 rounded-full flex items-center justify-center transition-all duration-300 ${
+                  className={`relative z-10 w-32 h-32 md:w-36 md:h-36 rounded-full flex items-center justify-center transition-all duration-300 ${
                     isRecording
                       ? 'bg-destructive shadow-[0_0_40px_hsl(var(--destructive)/0.5)]'
                       : audioBlob
@@ -137,26 +144,26 @@ const DreamForm = ({ onSubmitAudio, onSubmitText, isLoading }: DreamFormProps) =
                   }`}
                 >
                   {isRecording ? (
-                    <Square className="w-8 h-8 text-destructive-foreground" />
+                    <Square className="w-10 h-10 text-destructive-foreground" />
                   ) : (
-                    <Mic className="w-10 h-10 text-primary-foreground" />
+                    <Mic className="w-12 h-12 text-primary-foreground" />
                   )}
                 </motion.button>
               </div>
 
               {/* Status text */}
-              <div className="h-8 flex items-center justify-center">
+              <div className="h-10 flex items-center justify-center">
                 {isRecording && (
                   <motion.p
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="text-destructive font-display font-semibold text-lg"
+                    className="text-destructive font-display font-semibold text-xl"
                   >
                     Gravando... {formatTime(recordingTime)}
                   </motion.p>
                 )}
                 {!isRecording && !audioBlob && (
-                  <p className="text-muted-foreground text-sm">
+                  <p className="text-muted-foreground text-base">
                     Segure para gravar
                   </p>
                 )}
@@ -164,7 +171,7 @@ const DreamForm = ({ onSubmitAudio, onSubmitText, isLoading }: DreamFormProps) =
                   <motion.p
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="text-accent-foreground text-sm"
+                    className="text-accent-foreground text-base"
                   >
                     Áudio gravado ({formatTime(recordingTime)}) • Toque para regravar
                   </motion.p>
@@ -181,9 +188,9 @@ const DreamForm = ({ onSubmitAudio, onSubmitText, isLoading }: DreamFormProps) =
                     type="button"
                     onClick={handleSendAudio}
                     disabled={isLoading}
-                    className="w-full max-w-xs py-4 rounded-lg bg-primary text-primary-foreground font-display font-semibold text-lg flex items-center justify-center gap-2 glow-gold disabled:opacity-50"
+                    className="w-full max-w-xs py-5 rounded-xl bg-primary text-primary-foreground font-display font-semibold text-xl flex items-center justify-center gap-3 glow-gold disabled:opacity-50"
                   >
-                    <Send className="w-5 h-5" />
+                    <Send className="w-6 h-6" />
                     Enviar sonho
                   </motion.button>
                 )}
@@ -193,9 +200,9 @@ const DreamForm = ({ onSubmitAudio, onSubmitText, isLoading }: DreamFormProps) =
               <button
                 type="button"
                 onClick={() => setMode("text")}
-                className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-sm"
+                className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-base"
               >
-                <Keyboard className="w-4 h-4" />
+                <Keyboard className="w-5 h-5" />
                 Prefiro digitar
               </button>
             </motion.div>
@@ -213,10 +220,10 @@ const DreamForm = ({ onSubmitAudio, onSubmitText, isLoading }: DreamFormProps) =
                   placeholder="Descreva tudo que você lembra do sonho..."
                   rows={6}
                   maxLength={2000}
-                  className="w-full px-4 py-3 rounded-lg bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all resize-none"
+                  className="w-full px-5 py-4 rounded-xl bg-secondary border border-border text-foreground text-lg placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all resize-none"
                   required
                 />
-                <span className="text-xs text-muted-foreground mt-1 block text-right">
+                <span className="text-sm text-muted-foreground mt-1 block text-right">
                   {text.length}/2000
                 </span>
 
@@ -225,9 +232,9 @@ const DreamForm = ({ onSubmitAudio, onSubmitText, isLoading }: DreamFormProps) =
                   disabled={isLoading || !text.trim()}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className="w-full py-4 rounded-lg bg-primary text-primary-foreground font-display font-semibold text-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed glow-gold transition-all"
+                  className="w-full py-5 rounded-xl bg-primary text-primary-foreground font-display font-semibold text-xl flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed glow-gold transition-all"
                 >
-                  <Send className="w-5 h-5" />
+                  <Send className="w-6 h-6" />
                   Enviar sonho
                 </motion.button>
               </form>
@@ -235,9 +242,9 @@ const DreamForm = ({ onSubmitAudio, onSubmitText, isLoading }: DreamFormProps) =
               <button
                 type="button"
                 onClick={() => setMode("audio")}
-                className="mt-6 flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-sm mx-auto"
+                className="mt-6 flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-base mx-auto"
               >
-                <Mic className="w-4 h-4" />
+                <Mic className="w-5 h-5" />
                 Prefiro gravar áudio
               </button>
             </motion.div>

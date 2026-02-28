@@ -38,7 +38,6 @@ const DreamDetailModal = ({ dream, onClose }: DreamDetailModalProps) => {
           exit={{ opacity: 0 }}
           transition={{ duration: 0.3 }}
         >
-          {/* Backdrop with blur */}
           <motion.div
             className="absolute inset-0 bg-background/70 backdrop-blur-md"
             onClick={onClose}
@@ -47,7 +46,6 @@ const DreamDetailModal = ({ dream, onClose }: DreamDetailModalProps) => {
             exit={{ opacity: 0 }}
           />
 
-          {/* Modal content */}
           <motion.div
             className="relative w-[90vw] max-w-2xl h-[90vh] max-h-[90vh] rounded-3xl bg-secondary/40 border border-border/40 backdrop-blur-xl overflow-hidden flex flex-col"
             initial={{ opacity: 0, scale: 0.85 }}
@@ -55,61 +53,52 @@ const DreamDetailModal = ({ dream, onClose }: DreamDetailModalProps) => {
             exit={{ opacity: 0, scale: 0.9 }}
             transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
           >
-            {/* Glow accent top */}
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent rounded-full" />
 
-            {/* Close button */}
             <button
               onClick={onClose}
-              className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-secondary/60 border border-border/40 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+              className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-secondary/60 border border-border/40 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
             >
-              <X className="w-4 h-4" />
+              <X className="w-5 h-5" />
             </button>
 
-            {/* Scrollable content */}
             <div className="flex-1 overflow-y-auto p-6 pt-8 space-y-6 scrollbar-thin">
-              {/* Header */}
               <div>
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-lg">{emotionEmoji[dream.emotion] || "💭"}</span>
-                  <span className="text-xs text-muted-foreground/60 capitalize font-display">{dream.emotion}</span>
+                  <span className="text-2xl">{emotionEmoji[dream.emotion] || "💭"}</span>
+                  <span className="text-sm text-muted-foreground/60 capitalize font-display">{dream.emotion}</span>
                   {formattedDate && (
-                    <span className="text-[10px] text-muted-foreground/40 ml-auto">{formattedDate}</span>
+                    <span className="text-xs text-muted-foreground/40 ml-auto">{formattedDate}</span>
                   )}
                 </div>
-                <h2 className="text-xl md:text-2xl font-display font-bold text-gradient-gold leading-tight">
+                <h2 className="text-2xl md:text-3xl font-display font-bold text-gradient-gold leading-tight">
                   {dream.title}
                 </h2>
               </div>
 
-              {/* Dream text */}
               <div className="space-y-2">
-                <h3 className="text-xs uppercase tracking-wider text-muted-foreground/50 font-display">
+                <h3 className="text-sm uppercase tracking-wider text-muted-foreground/50 font-display">
                   📝 Relato do sonho
                 </h3>
-                <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                <p className="text-base text-muted-foreground leading-relaxed whitespace-pre-wrap">
                   {dream.dreamText}
                 </p>
               </div>
 
-              {/* Divider */}
               <div className="h-px bg-gradient-to-r from-transparent via-border/40 to-transparent" />
 
-              {/* Interpretation */}
               <div className="space-y-2">
-                <h3 className="text-xs uppercase tracking-wider text-muted-foreground/50 font-display">
+                <h3 className="text-sm uppercase tracking-wider text-muted-foreground/50 font-display">
                   🌙 Interpretação
                 </h3>
-                <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap">
+                <p className="text-base text-foreground/90 leading-relaxed whitespace-pre-wrap">
                   {dream.interpretation}
                 </p>
               </div>
 
-              {/* Bottom glow */}
               <div className="h-8" />
             </div>
 
-            {/* Bottom fade gradient */}
             <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-secondary/40 to-transparent pointer-events-none rounded-b-3xl" />
           </motion.div>
         </motion.div>
