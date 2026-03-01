@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import type { DreamEntry } from "@/components/DreamHistoryCard";
 import { submitAudio, submitText, pollDreamStatus } from "@/lib/dreamApi";
 import { saveAudioLocally, removeAudio, getPendingAudios } from "@/lib/audioStorage";
-import { playMysticAmbient } from "@/lib/sounds";
+import { playMysticAmbient, playTransition, playError, playSuccess } from "@/lib/sounds";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 const Index = () => {
@@ -27,7 +27,6 @@ const Index = () => {
     retryPendingAudios();
   }, []);
 
-  // Auto-retry when coming back online
   useEffect(() => {
     if (online) retryPendingAudios();
   }, [online]);
@@ -40,6 +39,7 @@ const Index = () => {
           try {
             await submitAudio(item.blob);
             await removeAudio(item.id);
+            playSuccess();
             toast.success("Um sonho pendente foi reenviado com sucesso!");
           } catch {}
         }
@@ -52,6 +52,16 @@ const Index = () => {
     setStep("form");
     setTimeout(() => formRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
   };
+
+  const buildWaitingInterpretation = (title: string) => ({
+    title,
+    emotion: "paz",
+    symbols: "",
+    emotions: "",
+    message: "",
+    thumbnailUrl: heroBg,
+    isWaiting: true,
+  });
 
   const processDream = async (dreamId: number, dreamText: string) => {
     try {
@@ -80,10 +90,16 @@ const Index = () => {
         localStorage.setItem("dreamHistory", JSON.stringify(updated));
         return updated;
       });
+      playSuccess();
       setStep("result");
     } catch (err: any) {
-      toast.error(err.message || "Erro ao processar sonho");
-      setStep("form");
+      // On ANY error during polling, show result screen with waiting state
+      playError();
+      toast.error("Não foi possível obter a interpretação agora. Tente novamente em breve.", { duration: 5000 });
+      const waitingInterp = buildWaitingInterpretation(dreamText.slice(0, 40) + (dreamText.length > 40 ? "..." : ""));
+      waitingInterp.title = dreamText.slice(0, 40) + (dreamText.length > 40 ? "..." : "");
+      setInterpretation(waitingInterp);
+      setStep("result");
     }
   };
 
@@ -93,19 +109,12 @@ const Index = () => {
       localId = await saveAudioLocally(blob);
     } catch {}
 
+    playTransition();
     setStep("loading");
     window.scrollTo({ top: 0, behavior: "smooth" });
 
     if (!online) {
-      // Offline: show waiting state
-      const offlineInterp = {
-        title: "Sonho enviado por áudio",
-        emotion: "paz",
-        symbols: "",
-        emotions: "",
-        message: "",
-        thumbnailUrl: heroBg,
-      };
+      const offlineInterp = buildWaitingInterpretation("Sonho enviado por áudio");
       setInterpretation(offlineInterp);
       toast.info("Sem conexão. Seu áudio foi salvo e será enviado quando voltar online.", { duration: 6000 });
       setStep("result");
@@ -118,28 +127,23 @@ const Index = () => {
       const dreamText = transcription || "Sonho enviado por áudio";
       await processDream(dream_id, dreamText);
     } catch (err: any) {
-      toast.error("Não foi possível enviar agora. Seu áudio está salvo e será reenviado.", { duration: 6000 });
-      setStep("form");
+      // Even on fetch failure → go to result with waiting state (audio is safe locally)
+      playError();
+      toast.info("Seu áudio está salvo localmente e será reenviado automaticamente.", { duration: 6000 });
+      const waitingInterp = buildWaitingInterpretation("Sonho enviado por áudio");
+      setInterpretation(waitingInterp);
+      setStep("result");
     }
   };
 
   const handleSubmitText = async (text: string) => {
+    playTransition();
     setStep("loading");
     window.scrollTo({ top: 0, behavior: "smooth" });
 
     if (!online) {
-      // Save text locally for later
-      try {
-        localStorage.setItem('pending_text_dream', text);
-      } catch {}
-      const offlineInterp = {
-        title: text.slice(0, 40) + "...",
-        emotion: "paz",
-        symbols: "",
-        emotions: "",
-        message: "",
-        thumbnailUrl: heroBg,
-      };
+      try { localStorage.setItem('pending_text_dream', text); } catch {}
+      const offlineInterp = buildWaitingInterpretation(text.slice(0, 40) + "...");
       setInterpretation(offlineInterp);
       toast.info("Sem conexão. Seu sonho foi salvo e será enviado quando voltar online.", { duration: 6000 });
       setStep("result");
@@ -150,17 +154,24 @@ const Index = () => {
       const { dream_id } = await submitText(text);
       await processDream(dream_id, text);
     } catch (err: any) {
-      toast.error(err.message || "Erro ao enviar sonho");
-      setStep("form");
+      // Save text locally on failure and show result with waiting
+      try { localStorage.setItem('pending_text_dream', text); } catch {}
+      playError();
+      toast.info("Seu sonho foi salvo e será enviado assim que possível.", { duration: 6000 });
+      const waitingInterp = buildWaitingInterpretation(text.slice(0, 40) + "...");
+      setInterpretation(waitingInterp);
+      setStep("result");
     }
   };
 
   const handleNewDream = () => {
+    playTransition();
     setStep("form");
     setTimeout(() => formRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
   };
 
   const handleGoHome = () => {
+    playTransition();
     setStep("hero");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };

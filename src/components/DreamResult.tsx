@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
-import { Sparkles, Heart, Eye, Home, ArrowLeft, Share2, Gift, MessageCircle } from "lucide-react";
-import { playReveal } from "@/lib/sounds";
+import { Sparkles, Heart, Eye, Home, ArrowLeft, Share2, Gift, MessageCircle, WifiOff, RefreshCw } from "lucide-react";
+import { playReveal, playClick } from "@/lib/sounds";
 import { useEffect } from "react";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import EmojiReactions from "./EmojiReactions";
@@ -14,6 +14,7 @@ interface DreamInterpretation {
   message: string;
   thumbnailUrl: string;
   dreamId?: string;
+  isWaiting?: boolean;
 }
 
 interface DreamResultProps {
@@ -27,13 +28,14 @@ const DreamResult = ({ interpretation, onNewDream, onGoHome }: DreamResultProps)
   const dreamId = interpretation.dreamId || interpretation.title.slice(0, 20);
 
   useEffect(() => {
-    playReveal();
-  }, []);
+    if (!interpretation.isWaiting) playReveal();
+  }, [interpretation.isWaiting]);
 
   const shareText = `🌙 Jerry interpretou meu sonho: "${interpretation.title}"\n\nDescubra o que seus sonhos significam em jerry.com.br`;
   const shareUrl = 'https://jerry.com.br';
 
   const handleShare = async (platform: string) => {
+    playClick();
     const encoded = encodeURIComponent(shareText);
     const encodedUrl = encodeURIComponent(shareUrl);
     const urls: Record<string, string> = {
@@ -42,15 +44,13 @@ const DreamResult = ({ interpretation, onNewDream, onGoHome }: DreamResultProps)
       facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encoded}`,
     };
     if (platform === 'native' && navigator.share) {
-      try {
-        await navigator.share({ title: 'Jerry - Entendendo seus sonhos', text: shareText, url: shareUrl });
-      } catch {}
+      try { await navigator.share({ title: 'Jerry - Entendendo seus sonhos', text: shareText, url: shareUrl }); } catch {}
       return;
     }
     window.open(urls[platform], '_blank', 'noopener,noreferrer');
   };
 
-  const isWaiting = !interpretation.symbols && !online;
+  const isWaiting = interpretation.isWaiting || (!interpretation.symbols && !online);
 
   return (
     <motion.section
@@ -94,43 +94,62 @@ const DreamResult = ({ interpretation, onNewDream, onGoHome }: DreamResultProps)
           transition={{ delay: 0.2 }}
           className="text-2xl md:text-3xl font-display font-bold text-gradient-gold text-center mb-4"
         >
-          ✨ Sua interpretação
+          {isWaiting ? "⏳ Aguardando resposta" : "✨ Sua interpretação"}
         </motion.h2>
 
-        {/* Thumbnail */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.3 }}
-          className="rounded-xl overflow-hidden mb-4 glow-purple"
-        >
-          <img
-            src={interpretation.thumbnailUrl}
-            alt={interpretation.title}
-            className="w-full aspect-video object-cover"
-          />
-        </motion.div>
-
-        <h3 className="text-lg font-display font-semibold text-foreground mb-1 text-center">
-          {interpretation.title}
-        </h3>
-
-        {/* Emoji reactions for this dream */}
-        <div className="flex justify-center mb-4">
-          <EmojiReactions dreamId={dreamId} />
-        </div>
-
-        {/* Offline waiting state */}
+        {/* Waiting state card */}
         {isWaiting && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="bg-destructive/10 border border-destructive/20 rounded-xl p-4 mb-4 text-center"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="bg-gradient-card rounded-xl p-6 border border-primary/20 mb-4 text-center"
           >
-            <p className="text-sm text-destructive font-display">
-              ⏳ Aguardando resposta... Você será notificado quando a interpretação estiver pronta.
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+              className="inline-block mb-3"
+            >
+              {online ? <RefreshCw className="w-8 h-8 text-primary" /> : <WifiOff className="w-8 h-8 text-muted-foreground" />}
+            </motion.div>
+            <h3 className="text-lg font-display font-semibold text-foreground mb-2">
+              {interpretation.title}
+            </h3>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              {online
+                ? "Seu sonho está sendo processado. A interpretação estará pronta em breve."
+                : "Sem conexão no momento. Seu sonho foi salvo com segurança e será enviado automaticamente quando a conexão voltar."}
+            </p>
+            <p className="text-xs text-muted-foreground mt-3 opacity-60">
+              🔒 Seu áudio está salvo localmente — nenhum sonho será perdido.
             </p>
           </motion.div>
+        )}
+
+        {/* Thumbnail — only when we have result */}
+        {!isWaiting && (
+          <>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.3 }}
+              className="rounded-xl overflow-hidden mb-4 glow-purple"
+            >
+              <img
+                src={interpretation.thumbnailUrl}
+                alt={interpretation.title}
+                className="w-full aspect-video object-cover"
+              />
+            </motion.div>
+
+            <h3 className="text-lg font-display font-semibold text-foreground mb-1 text-center">
+              {interpretation.title}
+            </h3>
+
+            <div className="flex justify-center mb-4">
+              <EmojiReactions dreamId={dreamId} />
+            </div>
+          </>
         )}
 
         <div className="space-y-3">

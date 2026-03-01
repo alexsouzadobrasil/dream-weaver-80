@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import { Sparkles } from "lucide-react";
-import { playMysticAmbient } from "@/lib/sounds";
+import { playMysticAmbient, playPhaseTransition } from "@/lib/sounds";
 
 const phases = [
   { text: "Adormecendo...", subtitle: "Sua mente se acalma" },
@@ -11,7 +11,7 @@ const phases = [
   { text: "Decifrando seu sonho", subtitle: "Os símbolos se revelam" },
 ];
 
-// Star field for space phase
+// Star field
 const SpaceStars = () => (
   <div className="absolute inset-0 overflow-hidden">
     {Array.from({ length: 80 }).map((_, i) => (
@@ -25,17 +25,12 @@ const SpaceStars = () => (
           top: `${Math.random() * 100}%`,
         }}
         animate={{ opacity: [0.2, 1, 0.2] }}
-        transition={{
-          duration: 1.5 + Math.random() * 2,
-          delay: Math.random() * 2,
-          repeat: Infinity,
-        }}
+        transition={{ duration: 1.5 + Math.random() * 2, delay: Math.random() * 2, repeat: Infinity }}
       />
     ))}
   </div>
 );
 
-// Warp speed lines
 const WarpLines = () => (
   <div className="absolute inset-0 overflow-hidden pointer-events-none">
     {Array.from({ length: 20 }).map((_, i) => {
@@ -44,14 +39,7 @@ const WarpLines = () => (
         <motion.div
           key={i}
           className="absolute bg-primary/20"
-          style={{
-            width: 1,
-            height: 40,
-            left: '50%',
-            top: '50%',
-            transformOrigin: 'center',
-            rotate: `${angle}deg`,
-          }}
+          style={{ width: 1, height: 40, left: '50%', top: '50%', transformOrigin: 'center', rotate: `${angle}deg` }}
           animate={{ height: [0, 80, 0], opacity: [0, 0.6, 0] }}
           transition={{ duration: 1.5, delay: i * 0.1, repeat: Infinity, repeatDelay: 1 }}
         />
@@ -60,49 +48,25 @@ const WarpLines = () => (
   </div>
 );
 
-// Soul figure ascending
 const AscendingSoul = ({ phase }: { phase: number }) => (
   <motion.div className="relative w-24 h-32 mx-auto mb-8">
-    {/* Glow aura */}
     <motion.div
       className="absolute -inset-8 rounded-full"
       style={{ background: 'radial-gradient(circle, hsl(var(--primary) / 0.2) 0%, transparent 70%)' }}
       animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.6, 0.3] }}
       transition={{ duration: 3, repeat: Infinity }}
     />
-
-    {/* Soul body */}
     <motion.svg viewBox="0 0 60 90" className="w-full h-full" fill="none">
-      <motion.circle
-        cx="30" cy="20" r="14"
-        fill="hsl(var(--primary) / 0.4)"
-        stroke="hsl(var(--primary) / 0.6)"
-        strokeWidth="1"
-        animate={{ r: [14, 15, 14] }}
-        transition={{ duration: 2, repeat: Infinity }}
-      />
+      <motion.circle cx="30" cy="20" r="14" fill="hsl(var(--primary) / 0.4)" stroke="hsl(var(--primary) / 0.6)" strokeWidth="1" animate={{ r: [14, 15, 14] }} transition={{ duration: 2, repeat: Infinity }} />
       <motion.path
         d="M18 32 Q16 50 20 68 Q28 85 40 68 Q44 50 42 32 Z"
-        fill="hsl(var(--primary) / 0.2)"
-        stroke="hsl(var(--primary) / 0.4)"
-        strokeWidth="1"
-        animate={{
-          d: [
-            "M18 32 Q16 50 20 68 Q28 85 40 68 Q44 50 42 32 Z",
-            "M17 32 Q14 52 19 70 Q28 88 41 70 Q46 52 43 32 Z",
-            "M18 32 Q16 50 20 68 Q28 85 40 68 Q44 50 42 32 Z",
-          ],
-        }}
+        fill="hsl(var(--primary) / 0.2)" stroke="hsl(var(--primary) / 0.4)" strokeWidth="1"
+        animate={{ d: ["M18 32 Q16 50 20 68 Q28 85 40 68 Q44 50 42 32 Z", "M17 32 Q14 52 19 70 Q28 88 41 70 Q46 52 43 32 Z", "M18 32 Q16 50 20 68 Q28 85 40 68 Q44 50 42 32 Z"] }}
         transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
       />
     </motion.svg>
-
-    {/* Floating particles around soul */}
     {Array.from({ length: 6 }).map((_, i) => (
-      <motion.div
-        key={i}
-        className="absolute w-1.5 h-1.5 rounded-full bg-primary/50"
-        style={{ left: `${20 + Math.random() * 60}%`, top: `${Math.random() * 100}%` }}
+      <motion.div key={i} className="absolute w-1.5 h-1.5 rounded-full bg-primary/50" style={{ left: `${20 + Math.random() * 60}%`, top: `${Math.random() * 100}%` }}
         animate={{ y: [0, -15, 0], opacity: [0.2, 0.8, 0.2] }}
         transition={{ duration: 2 + Math.random() * 2, delay: Math.random() * 2, repeat: Infinity }}
       />
@@ -110,27 +74,15 @@ const AscendingSoul = ({ phase }: { phase: number }) => (
   </motion.div>
 );
 
-// Earth leaving view
 const EarthView = () => (
-  <motion.div
-    className="absolute bottom-0 left-1/2 -translate-x-1/2"
-    initial={{ scale: 1, y: 0 }}
-    animate={{ scale: 0.3, y: 100, opacity: 0 }}
-    transition={{ duration: 6, ease: "easeIn" }}
-  >
+  <motion.div className="absolute bottom-0 left-1/2 -translate-x-1/2" initial={{ scale: 1, y: 0 }} animate={{ scale: 0.3, y: 100, opacity: 0 }} transition={{ duration: 6, ease: "easeIn" }}>
     <div className="w-40 h-40 rounded-full bg-gradient-to-b from-accent/20 to-muted/20 blur-sm" />
   </motion.div>
 );
 
-// Progress bar
 const ProgressBar = ({ progress }: { progress: number }) => (
   <div className="w-56 h-1.5 rounded-full bg-secondary overflow-hidden mx-auto mt-6">
-    <motion.div
-      className="h-full rounded-full bg-primary"
-      initial={{ width: 0 }}
-      animate={{ width: `${progress}%` }}
-      transition={{ duration: 0.5 }}
-    />
+    <motion.div className="h-full rounded-full bg-primary" initial={{ width: 0 }} animate={{ width: `${progress}%` }} transition={{ duration: 0.5 }} />
   </div>
 );
 
@@ -147,6 +99,7 @@ const LoadingOverlay = () => {
           clearInterval(phaseInterval);
           return p;
         }
+        playPhaseTransition();
         return p + 1;
       });
     }, 2500);
@@ -155,64 +108,35 @@ const LoadingOverlay = () => {
       setProgress((p) => Math.min(p + 2, 95));
     }, 250);
 
-    return () => {
-      clearInterval(phaseInterval);
-      clearInterval(progressInterval);
-    };
+    return () => { clearInterval(phaseInterval); clearInterval(progressInterval); };
   }, []);
 
   return (
-    <motion.section
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="min-h-screen flex flex-col items-center justify-center px-6 relative overflow-hidden bg-gradient-mystic"
-    >
+    <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="min-h-screen flex flex-col items-center justify-center px-6 relative overflow-hidden bg-gradient-mystic">
       <SpaceStars />
       {phase >= 2 && <WarpLines />}
       {phase >= 2 && <EarthView />}
 
-      <motion.div
-        className="absolute inset-0 pointer-events-none"
-        animate={{ opacity: [0.2, 0.4, 0.2] }}
-        transition={{ duration: 5, repeat: Infinity }}
-      >
+      <motion.div className="absolute inset-0 pointer-events-none" animate={{ opacity: [0.2, 0.4, 0.2] }} transition={{ duration: 5, repeat: Infinity }}>
         <div className="absolute top-1/3 left-1/3 w-48 h-48 rounded-full bg-accent/10 blur-[80px]" />
         <div className="absolute bottom-1/3 right-1/3 w-36 h-36 rounded-full bg-primary/10 blur-[60px]" />
       </motion.div>
 
       <div className="relative z-10 flex flex-col items-center">
-        <motion.div
-          animate={{ y: phase >= 1 ? [0, -10, 0] : 0 }}
-          transition={{ duration: 3, repeat: Infinity }}
-        >
+        <motion.div animate={{ y: phase >= 1 ? [0, -10, 0] : 0 }} transition={{ duration: 3, repeat: Infinity }}>
           <AscendingSoul phase={phase} />
         </motion.div>
 
         <AnimatePresence mode="wait">
-          <motion.div
-            key={phase}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.6 }}
-            className="text-center"
-          >
-            <h3 className="text-2xl md:text-3xl font-display font-bold text-gradient-gold mb-2">
-              {phases[phase]?.text}
-            </h3>
-            <p className="text-base text-muted-foreground">
-              {phases[phase]?.subtitle}
-            </p>
+          <motion.div key={phase} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.6 }} className="text-center">
+            <h3 className="text-2xl md:text-3xl font-display font-bold text-gradient-gold mb-2">{phases[phase]?.text}</h3>
+            <p className="text-base text-muted-foreground">{phases[phase]?.subtitle}</p>
           </motion.div>
         </AnimatePresence>
 
         <ProgressBar progress={progress} />
 
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
-          className="mt-6"
-        >
+        <motion.div animate={{ rotate: 360 }} transition={{ duration: 6, repeat: Infinity, ease: "linear" }} className="mt-6">
           <Sparkles className="w-6 h-6 text-primary/40" />
         </motion.div>
       </div>
