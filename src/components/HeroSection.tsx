@@ -7,17 +7,17 @@ import type { DreamEntry } from "./DreamHistoryCard";
 import { playClick } from "@/lib/sounds";
 
 // Animated star component
-const AnimatedStar = ({ delay, x, y, size }: { delay: number; x: string; y: string; size: number }) => (
-  <motion.div
-    className="absolute rounded-full bg-foreground"
-    style={{ left: x, top: y, width: size, height: size }}
-    animate={{ opacity: [0, 1, 0.3, 1, 0], scale: [0.5, 1.3, 0.8, 1.2, 0.5] }}
-    transition={{ duration: 4 + Math.random() * 3, delay, repeat: Infinity }}
-  />
-);
+const AnimatedStar = ({ delay, x, y, size }: {delay: number;x: string;y: string;size: number;}) =>
+<motion.div
+  className="absolute rounded-full bg-foreground"
+  style={{ left: x, top: y, width: size, height: size }}
+  animate={{ opacity: [0, 1, 0.3, 1, 0], scale: [0.5, 1.3, 0.8, 1.2, 0.5] }}
+  transition={{ duration: 4 + Math.random() * 3, delay, repeat: Infinity }} />;
+
+
 
 // Enhanced shooting star / comet
-const ShootingStar = ({ delay }: { delay: number }) => {
+const ShootingStar = ({ delay }: {delay: number;}) => {
   const startY = Math.random() * 35;
   const startX = Math.random() * 50 + 30;
   return (
@@ -28,118 +28,118 @@ const ShootingStar = ({ delay }: { delay: number }) => {
       animate={{
         opacity: [0, 0.3, 1, 1, 0.5, 0],
         x: [0, -60, -180, -350, -500],
-        y: [0, 30, 90, 180, 280],
+        y: [0, 30, 90, 180, 280]
       }}
-      transition={{ duration: 2.5, delay, repeat: Infinity, repeatDelay: 6 + Math.random() * 8, ease: "easeIn" }}
-    >
+      transition={{ duration: 2.5, delay, repeat: Infinity, repeatDelay: 6 + Math.random() * 8, ease: "easeIn" }}>
+
       {/* Comet head glow */}
       <div className="relative">
         <div className="w-3 h-3 rounded-full bg-primary" style={{ boxShadow: '0 0 12px 4px hsl(43 80% 55% / 0.6), 0 0 30px 8px hsl(43 80% 55% / 0.3)' }} />
         {/* Long luminous tail */}
         <div className="absolute top-1/2 left-full -translate-y-1/2 w-32 h-[2px]"
-          style={{ background: 'linear-gradient(to right, hsl(43 80% 55% / 0.8), hsl(43 80% 55% / 0.3), hsl(260 50% 55% / 0.1), transparent)' }} />
+        style={{ background: 'linear-gradient(to right, hsl(43 80% 55% / 0.8), hsl(43 80% 55% / 0.3), hsl(260 50% 55% / 0.1), transparent)' }} />
         {/* Secondary faint tail */}
         <div className="absolute top-1/2 left-full -translate-y-1/2 w-20 h-[4px] blur-[2px]"
-          style={{ background: 'linear-gradient(to right, hsl(43 90% 70% / 0.4), transparent)' }} />
+        style={{ background: 'linear-gradient(to right, hsl(43 90% 70% / 0.4), transparent)' }} />
         {/* Sparkle particles trail */}
-        {[0, 1, 2, 3].map(i => (
-          <motion.div
-            key={i}
-            className="absolute rounded-full bg-primary/60"
-            style={{ width: 2 - i * 0.3, height: 2 - i * 0.3, left: 10 + i * 12, top: (Math.random() - 0.5) * 6 }}
-            animate={{ opacity: [0.8, 0] }}
-            transition={{ duration: 0.5, delay: i * 0.08, repeat: Infinity }}
-          />
-        ))}
+        {[0, 1, 2, 3].map((i) =>
+        <motion.div
+          key={i}
+          className="absolute rounded-full bg-primary/60"
+          style={{ width: 2 - i * 0.3, height: 2 - i * 0.3, left: 10 + i * 12, top: (Math.random() - 0.5) * 6 }}
+          animate={{ opacity: [0.8, 0] }}
+          transition={{ duration: 0.5, delay: i * 0.08, repeat: Infinity }} />
+
+        )}
       </div>
-    </motion.div>
-  );
+    </motion.div>);
+
 };
 
 const stars = Array.from({ length: 60 }, (_, i) => ({
   delay: Math.random() * 5,
   x: `${Math.random() * 100}%`,
   y: `${Math.random() * 100}%`,
-  size: Math.random() * 3 + 0.5,
+  size: Math.random() * 3 + 0.5
 }));
 
 // Floating particles (cosmic dust)
-const CosmicDust = () => (
-  <div className="absolute inset-0 overflow-hidden pointer-events-none">
-    {Array.from({ length: 25 }).map((_, i) => (
-      <motion.div
-        key={i}
-        className="absolute w-1 h-1 rounded-full bg-primary/30"
-        style={{ left: `${Math.random() * 100}%`, top: `${Math.random() * 100}%` }}
-        animate={{ y: [0, -30, 0], x: [0, Math.random() * 20 - 10, 0], opacity: [0.1, 0.5, 0.1] }}
-        transition={{ duration: 5 + Math.random() * 5, delay: Math.random() * 5, repeat: Infinity }}
-      />
-    ))}
-  </div>
-);
+const CosmicDust = () =>
+<div className="absolute inset-0 overflow-hidden pointer-events-none">
+    {Array.from({ length: 25 }).map((_, i) =>
+  <motion.div
+    key={i}
+    className="absolute w-1 h-1 rounded-full bg-primary/30"
+    style={{ left: `${Math.random() * 100}%`, top: `${Math.random() * 100}%` }}
+    animate={{ y: [0, -30, 0], x: [0, Math.random() * 20 - 10, 0], opacity: [0.1, 0.5, 0.1] }}
+    transition={{ duration: 5 + Math.random() * 5, delay: Math.random() * 5, repeat: Infinity }} />
+
+  )}
+  </div>;
+
 
 // Mystic nebula clouds
-const NebulaCloud = ({ x, y, color, size }: { x: string; y: string; color: string; size: number }) => (
-  <motion.div
-    className="absolute rounded-full pointer-events-none"
-    style={{
-      left: x, top: y, width: size, height: size,
-      background: `radial-gradient(circle, ${color}, transparent 70%)`,
-      filter: 'blur(40px)',
-    }}
-    animate={{ scale: [1, 1.2, 1], opacity: [0.15, 0.3, 0.15] }}
-    transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-  />
-);
+const NebulaCloud = ({ x, y, color, size }: {x: string;y: string;color: string;size: number;}) =>
+<motion.div
+  className="absolute rounded-full pointer-events-none"
+  style={{
+    left: x, top: y, width: size, height: size,
+    background: `radial-gradient(circle, ${color}, transparent 70%)`,
+    filter: 'blur(40px)'
+  }}
+  animate={{ scale: [1, 1.2, 1], opacity: [0.15, 0.3, 0.15] }}
+  transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }} />;
+
+
 
 // Person sleeping silhouette
-const SleepingSilhouette = () => (
-  <motion.div
-    className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[280px] md:max-w-[320px]"
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    transition={{ duration: 2 }}
-  >
+const SleepingSilhouette = () =>
+<motion.div
+  className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[280px] md:max-w-[320px]"
+  initial={{ opacity: 0 }}
+  animate={{ opacity: 1 }}
+  transition={{ duration: 2 }}>
+
     <div className="relative">
       <svg viewBox="0 0 300 120" className="w-full" fill="none">
         <motion.path
-          d="M50 100 Q70 40 130 50 Q180 55 220 70 Q260 82 280 100 Z"
-          fill="hsl(var(--secondary))"
-          stroke="hsl(var(--border))"
-          strokeWidth="1"
-          animate={{ d: [
-            "M50 100 Q70 40 130 50 Q180 55 220 70 Q260 82 280 100 Z",
-            "M50 100 Q70 38 130 48 Q180 53 220 68 Q260 80 280 100 Z",
-            "M50 100 Q70 40 130 50 Q180 55 220 70 Q260 82 280 100 Z",
-          ]}}
-          transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-        />
+        d="M50 100 Q70 40 130 50 Q180 55 220 70 Q260 82 280 100 Z"
+        fill="hsl(var(--secondary))"
+        stroke="hsl(var(--border))"
+        strokeWidth="1"
+        animate={{ d: [
+          "M50 100 Q70 40 130 50 Q180 55 220 70 Q260 82 280 100 Z",
+          "M50 100 Q70 38 130 48 Q180 53 220 68 Q260 80 280 100 Z",
+          "M50 100 Q70 40 130 50 Q180 55 220 70 Q260 82 280 100 Z"]
+        }}
+        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }} />
+
         <motion.circle cx="70" cy="50" r="22" fill="hsl(var(--muted-foreground) / 0.4)" animate={{ cy: [50, 48, 50] }} transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }} />
         <ellipse cx="70" cy="72" rx="35" ry="10" fill="hsl(var(--secondary))" stroke="hsl(var(--border))" strokeWidth="1" />
       </svg>
-      {[0, 1, 2].map((i) => (
-        <motion.span
-          key={i}
-          className="absolute text-primary/60 font-display font-bold"
-          style={{ left: `${25 + i * 8}%`, bottom: `${60 + i * 15}%`, fontSize: `${14 + i * 5}px` }}
-          animate={{ opacity: [0, 1, 0], y: [0, -20, -40], x: [0, 5, 10] }}
-          transition={{ duration: 2.5, delay: i * 0.8, repeat: Infinity }}
-        >
+      {[0, 1, 2].map((i) =>
+    <motion.span
+      key={i}
+      className="absolute text-primary/60 font-display font-bold"
+      style={{ left: `${25 + i * 8}%`, bottom: `${60 + i * 15}%`, fontSize: `${14 + i * 5}px` }}
+      animate={{ opacity: [0, 1, 0], y: [0, -20, -40], x: [0, 5, 10] }}
+      transition={{ duration: 2.5, delay: i * 0.8, repeat: Infinity }}>
+
           Z
         </motion.span>
-      ))}
+    )}
     </div>
-  </motion.div>
-);
+  </motion.div>;
+
 
 // Soul/spirit rising animation
-const SoulRising = () => (
-  <motion.div
-    className="absolute bottom-[30%] left-1/2 -translate-x-1/2 pointer-events-none"
-    initial={{ opacity: 0, y: 40 }}
-    animate={{ opacity: [0, 0.6, 0.8, 0.4, 0], y: [40, 0, -60, -140, -250] }}
-    transition={{ duration: 6, delay: 3, repeat: Infinity, repeatDelay: 4 }}
-  >
+const SoulRising = () =>
+<motion.div
+  className="absolute bottom-[30%] left-1/2 -translate-x-1/2 pointer-events-none"
+  initial={{ opacity: 0, y: 40 }}
+  animate={{ opacity: [0, 0.6, 0.8, 0.4, 0], y: [40, 0, -60, -140, -250] }}
+  transition={{ duration: 6, delay: 3, repeat: Infinity, repeatDelay: 4 }}>
+
     <div className="relative">
       <div className="w-16 h-24 rounded-full bg-primary/20 blur-xl absolute -inset-4" />
       <svg viewBox="0 0 60 90" width="48" height="72" className="opacity-60">
@@ -147,18 +147,18 @@ const SoulRising = () => (
         <path d="M20 30 Q18 50 22 70 Q30 85 38 70 Q42 50 40 30 Z" fill="hsl(var(--primary) / 0.2)" />
       </svg>
     </div>
-  </motion.div>
-);
+  </motion.div>;
+
 
 // Planet/cosmic object
-const CosmicOrb = ({ size, color, x, y, delay }: { size: number; color: string; x: string; y: string; delay: number }) => (
-  <motion.div
-    className="absolute rounded-full"
-    style={{ width: size, height: size, left: x, top: y, background: `radial-gradient(circle at 35% 35%, ${color}, transparent)` }}
-    animate={{ scale: [1, 1.1, 1], opacity: [0.4, 0.7, 0.4] }}
-    transition={{ duration: 5, delay, repeat: Infinity }}
-  />
-);
+const CosmicOrb = ({ size, color, x, y, delay }: {size: number;color: string;x: string;y: string;delay: number;}) =>
+<motion.div
+  className="absolute rounded-full"
+  style={{ width: size, height: size, left: x, top: y, background: `radial-gradient(circle at 35% 35%, ${color}, transparent)` }}
+  animate={{ scale: [1, 1.1, 1], opacity: [0.4, 0.7, 0.4] }}
+  transition={{ duration: 5, delay, repeat: Infinity }} />;
+
+
 
 interface HeroSectionProps {
   onStart: () => void;
@@ -202,8 +202,8 @@ const HeroSection = ({ onStart, dreamHistory = [] }: HeroSectionProps) => {
       <motion.div
         className="absolute inset-0 pointer-events-none"
         animate={{ opacity: [0.3, 0.5, 0.3] }}
-        transition={{ duration: 10, repeat: Infinity }}
-      >
+        transition={{ duration: 10, repeat: Infinity }}>
+
         <div className="absolute top-1/4 left-1/4 w-64 h-64 rounded-full bg-accent/5 blur-[100px]" />
         <div className="absolute bottom-1/3 right-1/4 w-48 h-48 rounded-full bg-primary/5 blur-[80px]" />
       </motion.div>
@@ -211,8 +211,8 @@ const HeroSection = ({ onStart, dreamHistory = [] }: HeroSectionProps) => {
       <motion.div
         className="absolute top-12 right-8 md:top-20 md:right-1/4"
         animate={{ y: [0, -8, 0] }}
-        transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-      >
+        transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}>
+
         <div className="relative">
           <div className="w-20 h-20 md:w-28 md:h-28 rounded-full bg-foreground/10 blur-2xl absolute -inset-4" />
           <Moon className="w-14 h-14 md:w-20 md:h-20 text-primary/70" />
@@ -227,25 +227,25 @@ const HeroSection = ({ onStart, dreamHistory = [] }: HeroSectionProps) => {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1.2 }}
-          className="text-4xl md:text-6xl font-display font-bold text-gradient-gold mb-2"
-        >
-          Jerry
+          className="text-4xl font-display font-bold text-gradient-gold mb-2 md:text-4xl">entendo seus sonhos
+
+
         </motion.h1>
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: 0.3 }}
-          className="text-lg md:text-xl font-display text-foreground/70 mb-6"
-        >
-          Entendendo seus sonhos
-        </motion.p>
+        
+
+
+
+
+
+
+
 
         <motion.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, delay: 0.5 }}
-          className="text-lg md:text-xl text-muted-foreground mb-10 leading-relaxed"
-        >
+          className="text-lg md:text-xl text-muted-foreground mb-10 leading-relaxed">
+
           Sua alma viaja enquanto você dorme.
           <br />
           Descubra o que o universo tem a dizer.
@@ -257,44 +257,44 @@ const HeroSection = ({ onStart, dreamHistory = [] }: HeroSectionProps) => {
           transition={{ duration: 0.6, delay: 0.8 }}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.97 }}
-          onClick={() => { playClick(); onStart(); }}
-          className="inline-flex items-center gap-3 px-10 py-5 rounded-full bg-primary text-primary-foreground font-display text-xl font-semibold glow-gold transition-all"
-        >
+          onClick={() => {playClick();onStart();}}
+          className="inline-flex items-center gap-3 px-10 py-5 rounded-full bg-primary text-primary-foreground font-display text-xl font-semibold glow-gold transition-all">
+
           <Sparkles className="w-6 h-6" />
           Interpretar meu sonho
         </motion.button>
 
         {/* Dream history - max 3 */}
-        {visibleDreams.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.2 }}
-            className="mt-10 w-full space-y-3"
-          >
+        {visibleDreams.length > 0 &&
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.2 }}
+          className="mt-10 w-full space-y-3">
+
             <p className="text-sm text-muted-foreground mb-3 font-display">
               ✨ Sonhos interpretados
             </p>
             <AnimatePresence mode="popLayout">
-              {visibleDreams.map((dream, i) => (
-                <DreamHistoryCard
-                  key={dream.id}
-                  dream={dream}
-                  index={i}
-                  onClick={() => { playClick(); setSelectedDream(dream); }}
-                />
-              ))}
+              {visibleDreams.map((dream, i) =>
+            <DreamHistoryCard
+              key={dream.id}
+              dream={dream}
+              index={i}
+              onClick={() => {playClick();setSelectedDream(dream);}} />
+
+            )}
             </AnimatePresence>
           </motion.div>
-        )}
+        }
       </div>
 
       <DreamDetailModal
         dream={selectedDream}
-        onClose={() => setSelectedDream(null)}
-      />
-    </section>
-  );
+        onClose={() => setSelectedDream(null)} />
+
+    </section>);
+
 };
 
 export default HeroSection;
