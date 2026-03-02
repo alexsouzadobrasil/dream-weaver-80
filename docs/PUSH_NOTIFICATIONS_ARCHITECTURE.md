@@ -30,6 +30,8 @@
 │  ├── /api/dream_status.php      (GET)  → status/polling      │
 │  ├── /api/comments.php          (GET/POST/DELETE)             │
 │  ├── /api/reactions.php         (GET/POST)                    │
+│  ├── /api/tts.php               (POST) → gera áudio TTS      │
+│  ├── /api/transcribe.php        (POST) → transcreve áudio     │
 │  ├── /api/push/subscribe.php    (POST)                        │
 │  ├── /api/push/unsubscribe.php  (DELETE)                      │
 │  └── /api/push/test.php         (POST)                        │
@@ -38,6 +40,7 @@
 │  ├── OpenAI Whisper (transcrição de áudio)                   │
 │  ├── OpenAI GPT-4 (interpretação)                            │
 │  ├── OpenAI DALL-E (imagem do sonho)                         │
+│  ├── OpenAI TTS (text-to-speech para interpretações)         │
 │  └── Web Push (notificações)                                 │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -539,6 +542,157 @@ Quality: standard
 
 ---
 
+## 🔊 TTS — Text-to-Speech (Geração de Áudio)
+
+### `POST /api/tts.php` — Gerar áudio da interpretação
+
+**Propósito:** Converte texto da interpretação em áudio MP3 para o usuário ouvir.
+
+**Headers:** `X-Api-Key`, `Content-Type: application/json`
+
+**Body:**
+```json
+{
+  "text": "Seu sonho revela uma jornada profunda..."
+}
+```
+
+**Limites:**
+- Máximo: **40.000 caracteres** por requisição
+- Mínimo: 10 caracteres
+
+**Lógica:**
+1. Validar API Key
+2. Validar texto (10-40000 chars)
+3. Enviar para OpenAI TTS API (`tts-1` ou `tts-1-hd`)
+4. Retornar o áudio MP3 como binary stream
+
+**Implementação PHP:**
+```php
+<?php
+require_once 'includes/auth.php';
+require_once 'includes/cors.php';
+
+$input = json_decode(file_get_contents('php://input'), true);
+$text = $input['text'] ?? '';
+
+if (strlen($text) < 10) {
+    http_response_code(422);
+    echo json_encode(['error' => 'Texto muito curto', 'code' => 'INVALID_INPUT']);
+    exit;
+}
+
+if (strlen($text) > 40000) {
+    http_response_code(422);
+    echo json_encode(['error' => 'Texto excede o limite de 40.000 caracteres', 'code' => 'INVALID_INPUT']);
+    exit;
+}
+
+$response = callOpenAI('https://api.openai.com/v1/audio/speech', [
+    'model' => 'tts-1',
+    'input' => $text,
+    'voice' => 'nova',       // Vozes: alloy, echo, fable, onyx, nova, shimmer
+    'response_format' => 'mp3',
+    'speed' => 1.0
+]);
+
+header('Content-Type: audio/mpeg');
+header('Content-Disposition: inline; filename="interpretation.mp3"');
+echo $response;
+```
+
+**Response:** Binary MP3 audio stream (Content-Type: audio/mpeg)
+
+**Erro:**
+```json
+{
+  "error": "Erro ao gerar áudio",
+  "code": "TTS_FAILED"
+}
+```
+
+---
+
+## 🎤 STT — Speech-to-Text (Transcrição Dedicada)
+
+### `POST /api/transcribe.php` — Transcrever áudio em texto
+
+**Propósito:** Endpoint dedicado para transcrição de áudio (separado do submit_dream para reuso).
+
+**Headers:** `X-Api-Key`
+
+**Body:** `multipart/form-data` com campo `audio`
+- Formatos: `mp3, wav, webm, ogg, m4a, flac, aac`
+- Máximo: 25MB
+
+**Lógica:**
+1. Validar API Key
+2. Validar arquivo de áudio
+3. Enviar para OpenAI Whisper API
+4. Retornar transcrição
+
+**Implementação PHP:**
+```php
+<?php
+require_once 'includes/auth.php';
+require_once 'includes/cors.php';
+
+$audioFile = $_FILES['audio'] ?? null;
+if (!$audioFile || $audioFile['error'] !== UPLOAD_ERR_OK) {
+    http_response_code(422);
+    echo json_encode(['error' => 'Arquivo de áudio inválido', 'code' => 'INVALID_AUDIO']);
+    exit;
+}
+
+if ($audioFile['size'] > 25 * 1024 * 1024) {
+    http_response_code(413);
+    echo json_encode(['error' => 'Arquivo excede 25MB', 'code' => 'FILE_TOO_LARGE']);
+    exit;
+}
+
+$ch = curl_init('https://api.openai.com/v1/audio/transcriptions');
+curl_setopt_array($ch, [
+    CURLOPT_POST => true,
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_HTTPHEADER => [
+        'Authorization: Bearer ' . OPENAI_API_KEY,
+    ],
+    CURLOPT_POSTFIELDS => [
+        'file' => new CURLFile($audioFile['tmp_name'], $audioFile['type'], $audioFile['name']),
+        'model' => 'whisper-1',
+        'language' => 'pt',
+        'response_format' => 'json',
+    ],
+]);
+
+$result = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+if ($httpCode !== 200) {
+    http_response_code(422);
+    echo json_encode(['error' => 'Falha na transcrição', 'code' => 'TRANSCRIPTION_FAILED']);
+    exit;
+}
+
+$data = json_decode($result, true);
+
+echo json_encode([
+    'success' => true,
+    'transcription' => $data['text'] ?? '',
+]);
+```
+
+**Response 200:**
+```json
+{
+  "success": true,
+  "transcription": "Eu estava voando sobre uma cidade..."
+}
+```
+
+---
+
 ## 📁 Estrutura de Pastas (Backend)
 
 ```
@@ -549,6 +703,8 @@ api/
 ├── dream_status.php
 ├── comments.php
 ├── reactions.php
+├── tts.php                 (text-to-speech)
+├── transcribe.php          (speech-to-text)
 ├── push/
 │   ├── subscribe.php
 │   ├── unsubscribe.php
@@ -586,18 +742,56 @@ Quando o dispositivo volta online:
 
 ---
 
+## 🔊 Função Helper OpenAI (includes/openai.php)
+
+```php
+<?php
+define('OPENAI_API_KEY', getenv('OPENAI_API_KEY'));
+
+function callOpenAI(string $url, array $body, bool $binary = false) {
+    $ch = curl_init($url);
+    $headers = [
+        'Authorization: Bearer ' . OPENAI_API_KEY,
+        'Content-Type: application/json',
+    ];
+    
+    curl_setopt_array($ch, [
+        CURLOPT_POST => true,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HTTPHEADER => $headers,
+        CURLOPT_POSTFIELDS => json_encode($body),
+        CURLOPT_TIMEOUT => 120,
+    ]);
+    
+    $result = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    
+    if ($httpCode !== 200) {
+        throw new Exception("OpenAI API error: HTTP $httpCode");
+    }
+    
+    return $binary ? $result : json_decode($result, true);
+}
+```
+
+---
+
 ## ✅ Checklist de Implementação
 
 - [ ] `GET /api/auth/key.php`
 - [ ] `POST /api/submit_dream.php` (áudio + texto)
 - [ ] `GET /api/dream_status.php`
 - [ ] Worker de processamento (GPT-4 + DALL-E)
+- [ ] `POST /api/tts.php` (text-to-speech, limite 40k chars)
+- [ ] `POST /api/transcribe.php` (speech-to-text, Whisper)
 - [ ] `GET/POST/DELETE /api/comments.php`
 - [ ] `GET/POST /api/reactions.php`
 - [ ] `POST /api/push/subscribe.php`
 - [ ] `DELETE /api/push/unsubscribe.php`
 - [ ] `POST /api/push/test.php`
 - [ ] Push sender (ao comentar/reagir)
+- [ ] `includes/openai.php` (helper)
 - [ ] Rate limiting
 - [ ] CORS
 - [ ] Tabelas MySQL

@@ -104,7 +104,7 @@ export async function pollDreamStatus(
           headers: { 'X-Api-Key': apiKey },
         }, 10000);
         const data: DreamStatusResponse = await res.json();
-        failCount = 0; // Reset on success
+        failCount = 0;
         onUpdate?.(data);
 
         if (data.status === 'done') {
@@ -123,4 +123,57 @@ export async function pollDreamStatus(
       }
     }, 5000);
   });
+}
+
+// ─── TTS: Gerar áudio da interpretação ───
+export async function generateInterpretationAudio(text: string): Promise<Blob> {
+  const apiKey = await getApiKey();
+  const truncated = text.slice(0, 40000); // API limit: 40k chars
+
+  try {
+    const res = await fetchWithTimeout(`${API_BASE}/api/tts.php`, {
+      method: 'POST',
+      headers: { 'X-Api-Key': apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: truncated }),
+    }, 60000); // 60s for TTS generation
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Erro ao gerar áudio' }));
+      throw new Error(err.error || 'Erro ao gerar áudio da interpretação');
+    }
+    return await res.blob();
+  } catch (err: any) {
+    if (err.message.includes('Failed to fetch') || err.message.includes('Tempo de conexão')) {
+      throw new Error('Sem conexão. Não foi possível gerar o áudio.');
+    }
+    throw err;
+  }
+}
+
+// ─── STT: Transcrever áudio em texto ───
+export async function transcribeAudio(audioBlob: Blob): Promise<string> {
+  const apiKey = await getApiKey();
+  const formData = new FormData();
+  formData.append('audio', audioBlob, 'dream.webm');
+
+  try {
+    const res = await fetchWithTimeout(`${API_BASE}/api/transcribe.php`, {
+      method: 'POST',
+      headers: { 'X-Api-Key': apiKey },
+      body: formData,
+    }, 30000);
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Erro na transcrição' }));
+      throw new Error(err.error || 'Erro ao transcrever áudio');
+    }
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || 'Erro na transcrição');
+    return data.transcription;
+  } catch (err: any) {
+    if (err.message.includes('Failed to fetch') || err.message.includes('Tempo de conexão')) {
+      throw new Error('Sem conexão. Não foi possível transcrever o áudio.');
+    }
+    throw err;
+  }
 }

@@ -1,10 +1,11 @@
 import { motion } from "framer-motion";
-import { Sparkles, Heart, Eye, Home, ArrowLeft, Share2, Gift, MessageCircle, WifiOff, RefreshCw } from "lucide-react";
+import { Sparkles, Heart, Eye, Home, ArrowLeft, Share2, Gift, MessageCircle, WifiOff, RefreshCw, Volume2 } from "lucide-react";
 import { playReveal, playClick } from "@/lib/sounds";
 import { useEffect } from "react";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import EmojiReactions from "./EmojiReactions";
 import DreamComments from "./DreamComments";
+import AudioPlayButton from "./AudioPlayButton";
 
 interface DreamInterpretation {
   title: string;
@@ -163,7 +164,8 @@ const DreamResult = ({ interpretation, onNewDream, onGoHome }: DreamResultProps)
             >
               <div className="flex items-center gap-2 mb-2">
                 <Eye className="w-4 h-4 text-primary" />
-                <h4 className="font-display font-semibold text-foreground text-sm">Significados Simbólicos</h4>
+                <h4 className="font-display font-semibold text-foreground text-sm flex-1">Significados Simbólicos</h4>
+                <AudioPlayButton text={interpretation.symbols} size="sm" />
               </div>
               <p className="text-sm text-muted-foreground leading-relaxed">{interpretation.symbols}</p>
               <DreamComments dreamId={`symbols_${dreamId}`} />
