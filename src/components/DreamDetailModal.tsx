@@ -3,6 +3,7 @@ import { X } from "lucide-react";
 import type { DreamEntry } from "./DreamHistoryCard";
 import EmojiReactions from "./EmojiReactions";
 import DreamComments from "./DreamComments";
+import AudioPlayButton from "./AudioPlayButton";
 
 const emotionEmoji: Record<string, string> = {
   medo: "😨", alegria: "😊", tristeza: "😢", confusao: "🤔", paz: "😌", ansiedade: "😰",
@@ -82,7 +83,10 @@ const DreamDetailModal = ({ dream, onClose }: DreamDetailModalProps) => {
               <div className="h-px bg-gradient-to-r from-transparent via-border/40 to-transparent" />
 
               <div className="space-y-1">
-                <h3 className="text-xs uppercase tracking-wider text-muted-foreground/50 font-display">🌙 Interpretação</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs uppercase tracking-wider text-muted-foreground/50 font-display">🌙 Interpretação</h3>
+                  {dream.interpretation && <AudioPlayButton text={dream.interpretation} size="md" />}
+                </div>
                 <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap">{dream.interpretation}</p>
               </div>
 

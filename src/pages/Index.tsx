@@ -12,6 +12,33 @@ import { saveAudioLocally, removeAudio, getPendingAudios } from "@/lib/audioStor
 import { playMysticAmbient, playTransition, playError, playSuccess } from "@/lib/sounds";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
+const FAKE_DREAMS: DreamEntry[] = [
+  {
+    id: "fake-1",
+    title: "Voando sobre montanhas douradas",
+    emotion: "paz",
+    dreamText: "Eu estava voando sobre montanhas enormes cobertas de ouro. O vento era quente e eu sentia uma paz imensa. Abaixo de mim, um rio brilhava como prata e eu podia ouvir uma melodia suave vindo de algum lugar distante.",
+    interpretation: "Voar em sonhos representa liberdade e transcendência. As montanhas douradas simbolizam conquistas e prosperidade que estão ao seu alcance. O rio prateado é o fluxo da sua intuição — você está em harmonia com seu caminho. A melodia distante é a voz do seu eu superior, guiando você para um propósito maior. Este sonho revela que você está em um momento de expansão espiritual e emocional.",
+    createdAt: new Date(Date.now() - 86400000).toISOString(),
+  },
+  {
+    id: "fake-2",
+    title: "O labirinto de espelhos infinitos",
+    emotion: "confusao",
+    dreamText: "Eu estava preso dentro de um labirinto feito de espelhos. Cada reflexo mostrava uma versão diferente de mim — mais jovem, mais velho, feliz, triste. Tentei encontrar a saída mas cada corredor levava a outro. No final, quebrei um espelho e encontrei um jardim.",
+    interpretation: "O labirinto de espelhos representa sua jornada de autoconhecimento. As diferentes versões de você são aspectos da sua personalidade que pedem integração — o Jung chamaria isso de encontro com a Sombra. A confusão é natural quando estamos em processo de transformação interior. Quebrar o espelho simboliza coragem para enfrentar verdades difíceis. O jardim que surge é a promessa de renovação: após o caos interior, floresce uma nova fase de sua vida.",
+    createdAt: new Date(Date.now() - 172800000).toISOString(),
+  },
+  {
+    id: "fake-3",
+    title: "A baleia cantando no céu estrelado",
+    emotion: "alegria",
+    dreamText: "Uma baleia enorme flutuava no céu noturno entre as estrelas. Ela cantava uma música que fazia as constelações dançarem. Eu estava em cima dela, segurando em sua barbatana, rindo de felicidade enquanto viajávamos pelo cosmos.",
+    interpretation: "A baleia é um símbolo ancestral de sabedoria profunda e conexão com o inconsciente coletivo. Ela cantando no céu representa a união entre o mundo emocional (oceano) e o espiritual (cosmos). Você montando nela indica que está em sintonia com forças maiores que guiam sua vida. As constelações dançando mostram que o universo celebra sua jornada. Este sonho é um presente: ele diz que você é amado pelo cosmos e que sua alegria é genuína e merecida.",
+    createdAt: new Date(Date.now() - 259200000).toISOString(),
+  },
+];
+
 const Index = () => {
   const [step, setStep] = useState<"hero" | "form" | "loading" | "result">("hero");
   const [interpretation, setInterpretation] = useState<any>(null);
@@ -22,7 +49,22 @@ const Index = () => {
   useEffect(() => {
     const saved = localStorage.getItem("dreamHistory");
     if (saved) {
-      try { setDreamHistory(JSON.parse(saved)); } catch {}
+      try {
+        const parsed = JSON.parse(saved);
+        // Merge fake dreams if history is empty
+        if (parsed.length === 0) {
+          setDreamHistory(FAKE_DREAMS);
+          localStorage.setItem("dreamHistory", JSON.stringify(FAKE_DREAMS));
+        } else {
+          setDreamHistory(parsed);
+        }
+      } catch {
+        setDreamHistory(FAKE_DREAMS);
+        localStorage.setItem("dreamHistory", JSON.stringify(FAKE_DREAMS));
+      }
+    } else {
+      setDreamHistory(FAKE_DREAMS);
+      localStorage.setItem("dreamHistory", JSON.stringify(FAKE_DREAMS));
     }
     retryPendingAudios();
   }, []);

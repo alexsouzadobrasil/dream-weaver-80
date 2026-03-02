@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import AudioPlayButton from "./AudioPlayButton";
 
 export interface DreamEntry {
   id: string;
@@ -131,9 +132,14 @@ const DreamHistoryCard = ({ dream, index, onClick, isExiting }: DreamHistoryCard
               <span className="text-xs text-muted-foreground/40 ml-auto">{formattedDate}</span>
             )}
           </div>
-          <p className="text-base text-foreground font-display font-medium truncate">
-            {dream.title}
-          </p>
+          <div className="flex items-center gap-2">
+            <p className="text-base text-foreground font-display font-medium truncate flex-1">
+              {dream.title}
+            </p>
+            {dream.interpretation && (
+              <AudioPlayButton text={dream.interpretation} size="sm" />
+            )}
+          </div>
         </div>
       </div>
     </motion.button>
