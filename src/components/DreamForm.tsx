@@ -1,26 +1,26 @@
 import { useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, Square, Send, Keyboard, ArrowLeft } from "lucide-react";
-import { playStartRecord, playStopRecord, playSend } from "@/lib/sounds";
+import { Mic, Square, Send, Trash2, Play, Pause } from "lucide-react";
+import { playStartRecord, playStopRecord, playSend, playClick } from "@/lib/sounds";
 
 interface DreamFormProps {
   onSubmitAudio: (blob: Blob) => void;
-  onSubmitText: (text: string) => void;
   isLoading: boolean;
 }
 
 const MAX_SIZE_MB = 25;
 
-const DreamForm = ({ onSubmitAudio, onSubmitText, isLoading }: DreamFormProps) => {
-  const [mode, setMode] = useState<"audio" | "text">("audio");
+const DreamForm = ({ onSubmitAudio, isLoading }: DreamFormProps) => {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
-  const [text, setText] = useState("");
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
 
   const startRecording = useCallback(async () => {
     try {
@@ -40,6 +40,8 @@ const DreamForm = ({ onSubmitAudio, onSubmitText, isLoading }: DreamFormProps) =
           return;
         }
         setAudioBlob(blob);
+        const url = URL.createObjectURL(blob);
+        setAudioUrl(url);
         stream.getTracks().forEach(t => t.stop());
       };
 
@@ -47,6 +49,7 @@ const DreamForm = ({ onSubmitAudio, onSubmitText, isLoading }: DreamFormProps) =
       setIsRecording(true);
       setRecordingTime(0);
       setAudioBlob(null);
+      if (audioUrl) { URL.revokeObjectURL(audioUrl); setAudioUrl(null); }
       playStartRecord();
 
       timerRef.current = setInterval(() => {
@@ -55,7 +58,7 @@ const DreamForm = ({ onSubmitAudio, onSubmitText, isLoading }: DreamFormProps) =
     } catch {
       alert('Não foi possível acessar o microfone. Verifique as permissões.');
     }
-  }, []);
+  }, [audioUrl]);
 
   const stopRecording = useCallback(() => {
     mediaRecorderRef.current?.stop();
@@ -67,18 +70,41 @@ const DreamForm = ({ onSubmitAudio, onSubmitText, isLoading }: DreamFormProps) =
     }
   }, []);
 
+  const handleDelete = () => {
+    playClick();
+    if (audioPlayerRef.current) {
+      audioPlayerRef.current.pause();
+      audioPlayerRef.current = null;
+    }
+    if (audioUrl) URL.revokeObjectURL(audioUrl);
+    setAudioBlob(null);
+    setAudioUrl(null);
+    setRecordingTime(0);
+    setIsPlaying(false);
+  };
+
+  const handlePlayPause = () => {
+    if (!audioUrl) return;
+    playClick();
+
+    if (isPlaying && audioPlayerRef.current) {
+      audioPlayerRef.current.pause();
+      setIsPlaying(false);
+      return;
+    }
+
+    const audio = new Audio(audioUrl);
+    audioPlayerRef.current = audio;
+    audio.onended = () => setIsPlaying(false);
+    audio.onerror = () => setIsPlaying(false);
+    audio.play();
+    setIsPlaying(true);
+  };
+
   const handleSendAudio = () => {
     if (audioBlob) {
       playSend();
       onSubmitAudio(audioBlob);
-    }
-  };
-
-  const handleSendText = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (text.trim()) {
-      playSend();
-      onSubmitText(text.trim());
     }
   };
 
@@ -106,150 +132,133 @@ const DreamForm = ({ onSubmitAudio, onSubmitText, isLoading }: DreamFormProps) =
       id="dream-form"
     >
       <div className="max-w-md mx-auto w-full text-center">
-        <h2 className="text-3xl md:text-5xl font-display font-bold text-gradient-gold mb-3">
+        <h2 className="text-3xl md:text-4xl font-display font-bold text-gradient-gold mb-3">
           Conte seu sonho
         </h2>
         <p className="text-muted-foreground mb-12 text-lg">
-          {mode === "audio" ? "Pressione o botão e conte seu sonho em voz alta" : "Descreva com o máximo de detalhes possível"}
+          {audioBlob ? "Ouça sua gravação antes de enviar" : "Pressione o botão e conte seu sonho em voz alta"}
         </p>
 
-        <AnimatePresence mode="wait">
-          {mode === "audio" ? (
-            <motion.div
-              key="audio-mode"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="flex flex-col items-center gap-8"
-            >
-              {/* Main record button */}
-              <div className="relative flex items-center justify-center">
-                {isRecording && <PulseRings />}
-                <motion.button
-                  type="button"
-                  disabled={isLoading}
-                  onMouseDown={!audioBlob && !isRecording ? startRecording : undefined}
-                  onMouseUp={isRecording ? stopRecording : undefined}
-                  onTouchStart={!audioBlob && !isRecording ? startRecording : undefined}
-                  onTouchEnd={isRecording ? stopRecording : undefined}
-                  onClick={audioBlob && !isRecording ? () => { setAudioBlob(null); setRecordingTime(0); } : undefined}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className={`relative z-10 w-32 h-32 md:w-36 md:h-36 rounded-full flex items-center justify-center transition-all duration-300 ${
-                    isRecording
-                      ? 'bg-destructive shadow-[0_0_40px_hsl(var(--destructive)/0.5)]'
-                      : audioBlob
-                        ? 'bg-accent shadow-[0_0_40px_hsl(var(--accent)/0.4)]'
-                        : 'bg-primary glow-gold'
-                  }`}
-                >
-                  {isRecording ? (
-                    <Square className="w-10 h-10 text-destructive-foreground" />
-                  ) : (
-                    <Mic className="w-12 h-12 text-primary-foreground" />
-                  )}
-                </motion.button>
-              </div>
+        <div className="flex flex-col items-center gap-8">
+          {/* Main record button — only show when no audio recorded */}
+          {!audioBlob && (
+            <div className="relative flex items-center justify-center">
+              {isRecording && <PulseRings />}
+              <motion.button
+                type="button"
+                disabled={isLoading}
+                onMouseDown={!isRecording ? startRecording : undefined}
+                onMouseUp={isRecording ? stopRecording : undefined}
+                onTouchStart={!isRecording ? (e) => { e.preventDefault(); startRecording(); } : undefined}
+                onTouchEnd={isRecording ? (e) => { e.preventDefault(); stopRecording(); } : undefined}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className={`relative z-10 w-32 h-32 md:w-36 md:h-36 rounded-full flex items-center justify-center transition-all duration-300 ${
+                  isRecording
+                    ? 'bg-destructive shadow-[0_0_40px_hsl(var(--destructive)/0.5)]'
+                    : 'bg-primary glow-gold'
+                }`}
+              >
+                {isRecording ? (
+                  <Square className="w-10 h-10 text-destructive-foreground" />
+                ) : (
+                  <Mic className="w-12 h-12 text-primary-foreground" />
+                )}
+              </motion.button>
+            </div>
+          )}
 
-              {/* Status text */}
-              <div className="h-10 flex items-center justify-center">
-                {isRecording && (
-                  <motion.p
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="text-destructive font-display font-semibold text-xl"
-                  >
-                    Gravando... {formatTime(recordingTime)}
-                  </motion.p>
-                )}
-                {!isRecording && !audioBlob && (
-                  <p className="text-muted-foreground text-base">
-                    Segure para gravar
-                  </p>
-                )}
-                {audioBlob && !isRecording && (
-                  <motion.p
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="text-accent-foreground text-base"
-                  >
-                    Áudio gravado ({formatTime(recordingTime)}) • Toque para regravar
-                  </motion.p>
-                )}
-              </div>
+          {/* Status text */}
+          <div className="h-10 flex items-center justify-center">
+            {isRecording && (
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-destructive font-display font-semibold text-xl"
+              >
+                Gravando... {formatTime(recordingTime)}
+              </motion.p>
+            )}
+            {!isRecording && !audioBlob && (
+              <p className="text-muted-foreground text-base">
+                Segure para gravar
+              </p>
+            )}
+          </div>
 
-              {/* Send button */}
-              <AnimatePresence>
-                {audioBlob && !isRecording && (
+          {/* Audio preview — after recording */}
+          <AnimatePresence>
+            {audioBlob && !isRecording && (
+              <motion.div
+                initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="w-full max-w-xs space-y-5"
+              >
+                {/* Playback card */}
+                <div className="bg-gradient-card rounded-2xl p-5 border border-border/40 space-y-4">
+                  <div className="flex items-center gap-4">
+                    <motion.button
+                      whileTap={{ scale: 0.9 }}
+                      onClick={handlePlayPause}
+                      className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${
+                        isPlaying
+                          ? 'bg-primary text-primary-foreground shadow-[0_0_20px_hsl(var(--primary)/0.4)]'
+                          : 'bg-secondary text-foreground border border-border/40'
+                      }`}
+                    >
+                      {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-0.5" />}
+                    </motion.button>
+                    <div className="flex-1 text-left">
+                      <p className="text-foreground font-display font-semibold text-base">Seu sonho</p>
+                      <p className="text-muted-foreground text-sm">{formatTime(recordingTime)} gravados</p>
+                    </div>
+                  </div>
+
+                  {/* Waveform placeholder */}
+                  <div className="flex items-end justify-center gap-[3px] h-8">
+                    {Array.from({ length: 30 }).map((_, i) => (
+                      <motion.div
+                        key={i}
+                        className="w-1 rounded-full bg-primary/40"
+                        animate={isPlaying ? {
+                          height: [4, 8 + Math.random() * 20, 4],
+                        } : { height: 4 + Math.sin(i * 0.5) * 12 }}
+                        transition={isPlaying ? {
+                          duration: 0.4 + Math.random() * 0.3,
+                          repeat: Infinity,
+                          repeatType: "reverse",
+                        } : { duration: 0 }}
+                        style={{ height: 4 + Math.sin(i * 0.5) * 12 }}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-3">
                   <motion.button
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 20 }}
-                    type="button"
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handleDelete}
+                    className="flex-1 py-4 rounded-xl bg-secondary text-foreground font-display font-semibold text-base border border-border/40 flex items-center justify-center gap-2 hover:border-destructive/40 transition-colors"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                    Regravar
+                  </motion.button>
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
                     onClick={handleSendAudio}
                     disabled={isLoading}
-                    className="w-full max-w-xs py-5 rounded-xl bg-primary text-primary-foreground font-display font-semibold text-xl flex items-center justify-center gap-3 glow-gold disabled:opacity-50"
+                    className="flex-1 py-4 rounded-xl bg-primary text-primary-foreground font-display font-semibold text-base flex items-center justify-center gap-2 glow-gold disabled:opacity-50"
                   >
-                    <Send className="w-6 h-6" />
-                    Enviar sonho
+                    <Send className="w-5 h-5" />
+                    Enviar
                   </motion.button>
-                )}
-              </AnimatePresence>
-
-              {/* Switch to text */}
-              <button
-                type="button"
-                onClick={() => setMode("text")}
-                className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-base"
-              >
-                <Keyboard className="w-5 h-5" />
-                Prefiro digitar
-              </button>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="text-mode"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-            >
-              <form onSubmit={handleSendText} className="space-y-6">
-                <textarea
-                  value={text}
-                  onChange={(e) => setText(e.target.value)}
-                  placeholder="Descreva tudo que você lembra do sonho..."
-                  rows={6}
-                  maxLength={2000}
-                  className="w-full px-5 py-4 rounded-xl bg-secondary border border-border text-foreground text-lg placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all resize-none"
-                  required
-                />
-                <span className="text-sm text-muted-foreground mt-1 block text-right">
-                  {text.length}/2000
-                </span>
-
-                <motion.button
-                  type="submit"
-                  disabled={isLoading || !text.trim()}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="w-full py-5 rounded-xl bg-primary text-primary-foreground font-display font-semibold text-xl flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed glow-gold transition-all"
-                >
-                  <Send className="w-6 h-6" />
-                  Enviar sonho
-                </motion.button>
-              </form>
-
-              <button
-                type="button"
-                onClick={() => setMode("audio")}
-                className="mt-6 flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-base mx-auto"
-              >
-                <Mic className="w-5 h-5" />
-                Prefiro gravar áudio
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
     </motion.section>
   );

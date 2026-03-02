@@ -204,7 +204,7 @@ const DreamResult = ({ interpretation, onNewDream, onGoHome }: DreamResultProps)
             </motion.div>
           )}
 
-          {/* Donation card */}
+          {/* Donation card with Pix */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -217,10 +217,22 @@ const DreamResult = ({ interpretation, onNewDream, onGoHome }: DreamResultProps)
               <h4 className="font-display font-semibold text-foreground text-sm">Ajude o Jerry 💛</h4>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed mb-3">
-              Ajude-nos a manter esse serviço gratuito e a ajudar mais pessoas com uma doação para{" "}
-              <span className="text-primary font-semibold">doar@jerry.com.br</span>{" "}
-              ou compartilhando seu sonho. ✨
+              Ajude-nos a manter esse serviço gratuito e a ajudar mais pessoas com uma doação via Pix ou compartilhando seu sonho. ✨
             </p>
+
+            {/* Pix donation button */}
+            <motion.a
+              whileTap={{ scale: 0.97 }}
+              href="https://api.jerry.com.br/api/donate.php"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => playClick()}
+              className="flex w-full mb-3 py-3 rounded-xl bg-[hsl(160_60%_38%)] text-foreground font-display font-semibold text-sm items-center justify-center gap-2 border border-[hsl(160_60%_45%/0.3)] shadow-[0_0_15px_hsl(160_60%_38%/0.2)] hover:shadow-[0_0_25px_hsl(160_60%_38%/0.3)] transition-all no-underline"
+            >
+              <span className="text-lg">🥑</span>
+              Doar via Pix (AbacatePay)
+            </motion.a>
+
             <div className="flex flex-wrap gap-2">
               <motion.button
                 whileTap={{ scale: 0.97 }}

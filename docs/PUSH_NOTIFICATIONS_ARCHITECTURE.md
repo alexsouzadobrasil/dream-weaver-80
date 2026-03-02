@@ -777,6 +777,72 @@ function callOpenAI(string $url, array $body, bool $binary = false) {
 
 ---
 
+## 🥑 Doações via Pix (AbacatePay)
+
+### `GET /api/donate.php` — Redirecionar para página de doação
+
+**Propósito:** Cria uma cobrança Pix via AbacatePay e redireciona o usuário para a página de pagamento.
+
+**Lógica:**
+1. Criar cobrança via `POST https://api.abacatepay.com/v1/billing/create`
+2. Redirecionar usuário para a `url` retornada
+
+**Implementação PHP:**
+```php
+<?php
+require_once 'includes/cors.php';
+
+$ABACATEPAY_API_KEY = getenv('ABACATEPAY_API_KEY');
+
+$payload = [
+    'frequency' => 'ONE_TIME',
+    'methods' => ['PIX'],
+    'products' => [
+        [
+            'externalId' => 'donation-jerry',
+            'name' => 'Doação Jerry - Entendendo seus sonhos',
+            'description' => 'Doação voluntária para manter o serviço gratuito',
+            'quantity' => 1,
+            'price' => 500, // R$ 5,00 em centavos (valor sugerido)
+        ]
+    ],
+    'returnUrl' => 'https://jerry.com.br',
+    'completionUrl' => 'https://jerry.com.br?donated=true',
+];
+
+$ch = curl_init('https://api.abacatepay.com/v1/billing/create');
+curl_setopt_array($ch, [
+    CURLOPT_POST => true,
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_HTTPHEADER => [
+        'Authorization: Bearer ' . $ABACATEPAY_API_KEY,
+        'Content-Type: application/json',
+    ],
+    CURLOPT_POSTFIELDS => json_encode($payload),
+]);
+
+$result = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+if ($httpCode === 200) {
+    $data = json_decode($result, true);
+    $paymentUrl = $data['data']['url'] ?? null;
+    if ($paymentUrl) {
+        header("Location: $paymentUrl");
+        exit;
+    }
+}
+
+// Fallback
+header("Location: https://jerry.com.br?donation_error=true");
+```
+
+**Variáveis de ambiente necessárias:**
+- `ABACATEPAY_API_KEY` — Chave API do AbacatePay (obter em https://abacatepay.com)
+
+---
+
 ## ✅ Checklist de Implementação
 
 - [ ] `GET /api/auth/key.php`
@@ -785,6 +851,7 @@ function callOpenAI(string $url, array $body, bool $binary = false) {
 - [ ] Worker de processamento (GPT-4 + DALL-E)
 - [ ] `POST /api/tts.php` (text-to-speech, limite 40k chars)
 - [ ] `POST /api/transcribe.php` (speech-to-text, Whisper)
+- [ ] `GET /api/donate.php` (Pix via AbacatePay)
 - [ ] `GET/POST/DELETE /api/comments.php`
 - [ ] `GET/POST /api/reactions.php`
 - [ ] `POST /api/push/subscribe.php`
