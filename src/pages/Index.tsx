@@ -229,7 +229,7 @@ const Index = () => {
           >
             ← Início
           </button>
-          <DreamForm onSubmitAudio={handleSubmitAudio} onSubmitText={handleSubmitText} isLoading={false} />
+          <DreamForm onSubmitAudio={handleSubmitAudio} isLoading={false} />
         </div>
       )}
       {step === "loading" && <LoadingOverlay />}
