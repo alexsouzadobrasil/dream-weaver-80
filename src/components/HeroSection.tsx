@@ -209,41 +209,31 @@ const HeroSection = ({ onStart, dreamHistory = [] }: HeroSectionProps) => {
       </motion.div>
 
       <motion.div
-        className="absolute top-12 right-8 md:top-20 md:right-1/4"
+        className="absolute top-8 right-4 sm:top-12 sm:right-8 md:top-20 md:right-1/4"
         animate={{ y: [0, -8, 0] }}
         transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}>
-
         <div className="relative">
-          <div className="w-20 h-20 md:w-28 md:h-28 rounded-full bg-foreground/10 blur-2xl absolute -inset-4" />
-          <Moon className="w-14 h-14 md:w-20 md:h-20 text-primary/70" />
+          <div className="w-12 h-12 sm:w-20 sm:h-20 md:w-28 md:h-28 rounded-full bg-foreground/10 blur-2xl absolute -inset-4" />
+          <Moon className="w-8 h-8 sm:w-14 sm:h-14 md:w-20 md:h-20 text-primary/70" />
         </div>
       </motion.div>
 
       <SleepingSilhouette />
       <SoulRising />
 
-      <div className="relative z-10 text-center px-6 max-w-lg mx-auto mb-32">
+      <div className="relative z-10 text-center px-4 sm:px-6 max-w-lg mx-auto mb-32">
         <motion.h1
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1.2 }}
-          className="text-4xl font-display font-bold text-gradient-gold mb-2 md:text-4xl">Entendendo sonhos
+          className="text-[1.7rem] sm:text-4xl font-display font-bold text-gradient-gold mb-2">Entendendo sonhos
         </motion.h1>
-        
-
-
-
-
-
-
-
 
         <motion.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, delay: 0.5 }}
-          className="text-lg md:text-xl text-muted-foreground mb-10 leading-relaxed">
-
+          className="text-base sm:text-lg md:text-xl text-muted-foreground mb-8 sm:mb-10 leading-relaxed">
           Sua alma viaja enquanto você dorme.
           <br />
           Descubra o que o universo tem a dizer.
@@ -256,9 +246,8 @@ const HeroSection = ({ onStart, dreamHistory = [] }: HeroSectionProps) => {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.97 }}
           onClick={() => {playClick();onStart();}}
-          className="inline-flex items-center gap-3 px-10 py-5 rounded-full bg-primary text-primary-foreground font-display text-xl font-semibold glow-gold transition-all">
-
-          <Sparkles className="w-6 h-6" />
+          className="inline-flex items-center gap-2 sm:gap-3 px-7 sm:px-10 py-4 sm:py-5 rounded-full bg-primary text-primary-foreground font-display text-base sm:text-xl font-semibold glow-gold transition-all">
+          <Sparkles className="w-5 h-5 sm:w-6 sm:h-6" />
           Interpretar meu sonho
         </motion.button>
 
