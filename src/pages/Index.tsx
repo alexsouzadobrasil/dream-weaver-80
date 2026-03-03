@@ -51,7 +51,6 @@ const Index = () => {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        // Merge fake dreams if history is empty
         if (parsed.length === 0) {
           setDreamHistory(FAKE_DREAMS);
           localStorage.setItem("dreamHistory", JSON.stringify(FAKE_DREAMS));
@@ -135,11 +134,9 @@ const Index = () => {
       playSuccess();
       setStep("result");
     } catch (err: any) {
-      // On ANY error during polling, show result screen with waiting state
       playError();
       toast.error("Não foi possível obter a interpretação agora. Tente novamente em breve.", { duration: 5000 });
       const waitingInterp = buildWaitingInterpretation(dreamText.slice(0, 40) + (dreamText.length > 40 ? "..." : ""));
-      waitingInterp.title = dreamText.slice(0, 40) + (dreamText.length > 40 ? "..." : "");
       setInterpretation(waitingInterp);
       setStep("result");
     }
@@ -147,9 +144,7 @@ const Index = () => {
 
   const handleSubmitAudio = async (blob: Blob) => {
     let localId: number | null = null;
-    try {
-      localId = await saveAudioLocally(blob);
-    } catch {}
+    try { localId = await saveAudioLocally(blob); } catch {}
 
     playTransition();
     setStep("loading");
@@ -169,7 +164,6 @@ const Index = () => {
       const dreamText = transcription || "Sonho enviado por áudio";
       await processDream(dream_id, dreamText);
     } catch (err: any) {
-      // Even on fetch failure → go to result with waiting state (audio is safe locally)
       playError();
       toast.info("Seu áudio está salvo localmente e será reenviado automaticamente.", { duration: 6000 });
       const waitingInterp = buildWaitingInterpretation("Sonho enviado por áudio");
@@ -196,7 +190,6 @@ const Index = () => {
       const { dream_id } = await submitText(text);
       await processDream(dream_id, text);
     } catch (err: any) {
-      // Save text locally on failure and show result with waiting
       try { localStorage.setItem('pending_text_dream', text); } catch {}
       playError();
       toast.info("Seu sonho foi salvo e será enviado assim que possível.", { duration: 6000 });
@@ -229,7 +222,7 @@ const Index = () => {
           >
             ← Início
           </button>
-          <DreamForm onSubmitAudio={handleSubmitAudio} isLoading={false} />
+          <DreamForm onSubmitAudio={handleSubmitAudio} onSubmitText={handleSubmitText} isLoading={false} />
         </div>
       )}
       {step === "loading" && <LoadingOverlay />}

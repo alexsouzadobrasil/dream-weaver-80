@@ -1,26 +1,45 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, Square, Send, Trash2, Play, Pause } from "lucide-react";
+import { Mic, Square, Send, Trash2, Play, Pause, PenLine, MicIcon } from "lucide-react";
 import { playStartRecord, playStopRecord, playSend, playClick } from "@/lib/sounds";
 
 interface DreamFormProps {
   onSubmitAudio: (blob: Blob) => void;
+  onSubmitText: (text: string) => void;
   isLoading: boolean;
 }
 
 const MAX_SIZE_MB = 25;
+const MAX_TEXT_LENGTH = 5000;
 
-const DreamForm = ({ onSubmitAudio, isLoading }: DreamFormProps) => {
-  const [isRecording, setIsRecording] = useState(false);
+type InputMode = "audio" | "text";
+type AudioState = "idle" | "recording" | "recorded" | "playing";
+
+const DreamForm = ({ onSubmitAudio, onSubmitText, isLoading }: DreamFormProps) => {
+  const [inputMode, setInputMode] = useState<InputMode>("audio");
+  const [audioState, setAudioState] = useState<AudioState>("idle");
   const [recordingTime, setRecordingTime] = useState(0);
+  const [playbackProgress, setPlaybackProgress] = useState(0);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [dreamText, setDreamText] = useState("");
+  const [textSubmitting, setTextSubmitting] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
+  const progressRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (progressRef.current) clearInterval(progressRef.current);
+      if (audioUrl) URL.revokeObjectURL(audioUrl);
+      if (audioPlayerRef.current) audioPlayerRef.current.pause();
+    };
+  }, [audioUrl]);
 
   const startRecording = useCallback(async () => {
     try {
@@ -37,16 +56,18 @@ const DreamForm = ({ onSubmitAudio, isLoading }: DreamFormProps) => {
         const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
         if (blob.size > MAX_SIZE_MB * 1024 * 1024) {
           alert('Áudio excede 25MB. Tente gravar um áudio mais curto.');
+          setAudioState("idle");
           return;
         }
         setAudioBlob(blob);
         const url = URL.createObjectURL(blob);
         setAudioUrl(url);
+        setAudioState("recorded");
         stream.getTracks().forEach(t => t.stop());
       };
 
       mediaRecorder.start();
-      setIsRecording(true);
+      setAudioState("recording");
       setRecordingTime(0);
       setAudioBlob(null);
       if (audioUrl) { URL.revokeObjectURL(audioUrl); setAudioUrl(null); }
@@ -62,7 +83,6 @@ const DreamForm = ({ onSubmitAudio, isLoading }: DreamFormProps) => {
 
   const stopRecording = useCallback(() => {
     mediaRecorderRef.current?.stop();
-    setIsRecording(false);
     playStopRecord();
     if (timerRef.current) {
       clearInterval(timerRef.current);
@@ -70,35 +90,65 @@ const DreamForm = ({ onSubmitAudio, isLoading }: DreamFormProps) => {
     }
   }, []);
 
+  const handleMainButton = () => {
+    if (audioState === "idle") {
+      startRecording();
+    } else if (audioState === "recording") {
+      stopRecording();
+    } else if (audioState === "recorded") {
+      handlePlayPause();
+    } else if (audioState === "playing") {
+      handlePlayPause();
+    }
+  };
+
   const handleDelete = () => {
     playClick();
     if (audioPlayerRef.current) {
       audioPlayerRef.current.pause();
       audioPlayerRef.current = null;
     }
+    if (progressRef.current) { clearInterval(progressRef.current); progressRef.current = null; }
     if (audioUrl) URL.revokeObjectURL(audioUrl);
     setAudioBlob(null);
     setAudioUrl(null);
     setRecordingTime(0);
-    setIsPlaying(false);
+    setPlaybackProgress(0);
+    setAudioState("idle");
   };
 
   const handlePlayPause = () => {
     if (!audioUrl) return;
     playClick();
 
-    if (isPlaying && audioPlayerRef.current) {
+    if (audioState === "playing" && audioPlayerRef.current) {
       audioPlayerRef.current.pause();
-      setIsPlaying(false);
+      if (progressRef.current) { clearInterval(progressRef.current); progressRef.current = null; }
+      setAudioState("recorded");
       return;
     }
 
     const audio = new Audio(audioUrl);
     audioPlayerRef.current = audio;
-    audio.onended = () => setIsPlaying(false);
-    audio.onerror = () => setIsPlaying(false);
+    setAudioState("playing");
+    setPlaybackProgress(0);
+
+    audio.onended = () => {
+      setAudioState("recorded");
+      setPlaybackProgress(0);
+      if (progressRef.current) { clearInterval(progressRef.current); progressRef.current = null; }
+    };
+    audio.onerror = () => {
+      setAudioState("recorded");
+      if (progressRef.current) { clearInterval(progressRef.current); progressRef.current = null; }
+    };
+
     audio.play();
-    setIsPlaying(true);
+    progressRef.current = setInterval(() => {
+      if (audio.duration) {
+        setPlaybackProgress((audio.currentTime / audio.duration) * 100);
+      }
+    }, 100);
   };
 
   const handleSendAudio = () => {
@@ -106,6 +156,18 @@ const DreamForm = ({ onSubmitAudio, isLoading }: DreamFormProps) => {
       playSend();
       onSubmitAudio(audioBlob);
     }
+  };
+
+  const handleSendText = () => {
+    const trimmed = dreamText.trim();
+    if (!trimmed || textSubmitting) return;
+    if (trimmed.length < 10) {
+      alert("Descreva seu sonho com pelo menos 10 caracteres.");
+      return;
+    }
+    setTextSubmitting(true);
+    playSend();
+    onSubmitText(trimmed);
   };
 
   const formatTime = (s: number) => `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
@@ -123,142 +185,213 @@ const DreamForm = ({ onSubmitAudio, isLoading }: DreamFormProps) => {
     </>
   );
 
+  const showSendButton = audioState === "recorded";
+
   return (
     <motion.section
       initial={{ opacity: 0, y: 40 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.8 }}
-      className="py-20 px-4 flex-1 flex items-center justify-center"
+      className="py-12 px-4 flex-1 flex items-center justify-center safe-area-bottom"
       id="dream-form"
     >
       <div className="max-w-md mx-auto w-full text-center">
         <h2 className="text-3xl md:text-4xl font-display font-bold text-gradient-gold mb-3">
           Conte seu sonho
         </h2>
-        <p className="text-muted-foreground mb-12 text-lg">
-          {audioBlob ? "Ouça sua gravação antes de enviar" : "Pressione o botão e conte seu sonho em voz alta"}
+        <p className="text-muted-foreground mb-6 text-base md:text-lg leading-relaxed">
+          {inputMode === "audio"
+            ? audioState === "idle"
+              ? "Toque no botão e conte seu sonho em voz alta"
+              : audioState === "recording"
+              ? "Gravando... toque novamente para parar"
+              : "Ouça sua gravação antes de enviar"
+            : "Descreva seu sonho com detalhes"}
         </p>
 
-        <div className="flex flex-col items-center gap-8">
-          {/* Main record button — only show when no audio recorded */}
-          {!audioBlob && (
+        {/* Mode toggle */}
+        {audioState === "idle" && (
+          <div className="flex justify-center gap-2 mb-8">
+            <button
+              onClick={() => { playClick(); setInputMode("audio"); }}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-display font-semibold transition-all ${
+                inputMode === "audio"
+                  ? "bg-primary text-primary-foreground shadow-[0_0_15px_hsl(var(--primary)/0.3)]"
+                  : "bg-secondary text-muted-foreground border border-border/40 hover:text-foreground"
+              }`}
+            >
+              <MicIcon className="w-4 h-4" />
+              Enviar áudio
+            </button>
+            <button
+              onClick={() => { playClick(); setInputMode("text"); }}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-display font-semibold transition-all ${
+                inputMode === "text"
+                  ? "bg-primary text-primary-foreground shadow-[0_0_15px_hsl(var(--primary)/0.3)]"
+                  : "bg-secondary text-muted-foreground border border-border/40 hover:text-foreground"
+              }`}
+            >
+              <PenLine className="w-4 h-4" />
+              Enviar texto
+            </button>
+          </div>
+        )}
+
+        {/* ─── AUDIO MODE ─── */}
+        {inputMode === "audio" && (
+          <div className="flex flex-col items-center gap-6">
+            {/* Main button */}
             <div className="relative flex items-center justify-center">
-              {isRecording && <PulseRings />}
+              {audioState === "recording" && <PulseRings />}
               <motion.button
                 type="button"
                 disabled={isLoading}
-                onMouseDown={!isRecording ? startRecording : undefined}
-                onMouseUp={isRecording ? stopRecording : undefined}
-                onTouchStart={!isRecording ? (e) => { e.preventDefault(); startRecording(); } : undefined}
-                onTouchEnd={isRecording ? (e) => { e.preventDefault(); stopRecording(); } : undefined}
+                onClick={handleMainButton}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className={`relative z-10 w-32 h-32 md:w-36 md:h-36 rounded-full flex items-center justify-center transition-all duration-300 ${
-                  isRecording
+                className={`relative z-10 w-28 h-28 md:w-32 md:h-32 rounded-full flex items-center justify-center transition-all duration-300 ${
+                  audioState === "recording"
                     ? 'bg-destructive shadow-[0_0_40px_hsl(var(--destructive)/0.5)]'
+                    : audioState === "playing"
+                    ? 'bg-primary shadow-[0_0_30px_hsl(var(--primary)/0.4)]'
+                    : audioState === "recorded"
+                    ? 'bg-secondary border-2 border-primary/40'
                     : 'bg-primary glow-gold'
                 }`}
               >
-                {isRecording ? (
-                  <Square className="w-10 h-10 text-destructive-foreground" />
+                {audioState === "recording" ? (
+                  <Square className="w-9 h-9 text-destructive-foreground" />
+                ) : audioState === "playing" ? (
+                  <Pause className="w-9 h-9 text-primary-foreground" />
+                ) : audioState === "recorded" ? (
+                  <Play className="w-9 h-9 text-primary ml-1" />
                 ) : (
-                  <Mic className="w-12 h-12 text-primary-foreground" />
+                  <Mic className="w-10 h-10 text-primary-foreground" />
                 )}
               </motion.button>
             </div>
-          )}
 
-          {/* Status text */}
-          <div className="h-10 flex items-center justify-center">
-            {isRecording && (
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="text-destructive font-display font-semibold text-xl"
-              >
-                Gravando... {formatTime(recordingTime)}
-              </motion.p>
-            )}
-            {!isRecording && !audioBlob && (
-              <p className="text-muted-foreground text-base">
-                Segure para gravar
-              </p>
-            )}
-          </div>
+            {/* Status / timer */}
+            <div className="h-8 flex items-center justify-center">
+              {audioState === "recording" && (
+                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                  className="text-destructive font-display font-semibold text-xl">
+                  {formatTime(recordingTime)}
+                </motion.p>
+              )}
+              {audioState === "recorded" && (
+                <p className="text-muted-foreground text-sm font-display">
+                  {formatTime(recordingTime)} gravados — toque para ouvir
+                </p>
+              )}
+              {audioState === "playing" && (
+                <p className="text-primary text-sm font-display font-semibold">
+                  Reproduzindo...
+                </p>
+              )}
+            </div>
 
-          {/* Audio preview — after recording */}
-          <AnimatePresence>
-            {audioBlob && !isRecording && (
-              <motion.div
-                initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -20 }}
-                className="w-full max-w-xs space-y-5"
-              >
-                {/* Playback card */}
-                <div className="bg-gradient-card rounded-2xl p-5 border border-border/40 space-y-4">
-                  <div className="flex items-center gap-4">
-                    <motion.button
-                      whileTap={{ scale: 0.9 }}
-                      onClick={handlePlayPause}
-                      className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${
-                        isPlaying
-                          ? 'bg-primary text-primary-foreground shadow-[0_0_20px_hsl(var(--primary)/0.4)]'
-                          : 'bg-secondary text-foreground border border-border/40'
-                      }`}
-                    >
-                      {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-0.5" />}
-                    </motion.button>
-                    <div className="flex-1 text-left">
-                      <p className="text-foreground font-display font-semibold text-base">Seu sonho</p>
-                      <p className="text-muted-foreground text-sm">{formatTime(recordingTime)} gravados</p>
-                    </div>
-                  </div>
-
-                  {/* Waveform placeholder */}
-                  <div className="flex items-end justify-center gap-[3px] h-8">
-                    {Array.from({ length: 30 }).map((_, i) => (
-                      <motion.div
-                        key={i}
-                        className="w-1 rounded-full bg-primary/40"
-                        animate={isPlaying ? {
-                          height: [4, 8 + Math.random() * 20, 4],
-                        } : { height: 4 + Math.sin(i * 0.5) * 12 }}
-                        transition={isPlaying ? {
-                          duration: 0.4 + Math.random() * 0.3,
-                          repeat: Infinity,
-                          repeatType: "reverse",
-                        } : { duration: 0 }}
-                        style={{ height: 4 + Math.sin(i * 0.5) * 12 }}
-                      />
-                    ))}
-                  </div>
+            {/* Playback progress bar */}
+            {(audioState === "playing" || audioState === "recorded") && (
+              <div className="w-full max-w-xs">
+                <div className="w-full h-1.5 bg-secondary rounded-full overflow-hidden">
+                  <motion.div
+                    className="h-full bg-primary rounded-full"
+                    style={{ width: `${playbackProgress}%` }}
+                    transition={{ duration: 0.1 }}
+                  />
                 </div>
 
-                {/* Actions */}
-                <div className="flex gap-3">
+                {/* Waveform */}
+                <div className="flex items-end justify-center gap-[3px] h-8 mt-3">
+                  {Array.from({ length: 30 }).map((_, i) => (
+                    <motion.div
+                      key={i}
+                      className="w-1 rounded-full bg-primary/40"
+                      animate={audioState === "playing" ? {
+                        height: [4, 8 + Math.random() * 20, 4],
+                      } : { height: 4 + Math.sin(i * 0.5) * 12 }}
+                      transition={audioState === "playing" ? {
+                        duration: 0.4 + Math.random() * 0.3,
+                        repeat: Infinity,
+                        repeatType: "reverse",
+                      } : { duration: 0 }}
+                      style={{ height: 4 + Math.sin(i * 0.5) * 12 }}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Actions after recording */}
+            <AnimatePresence>
+              {(audioState === "recorded" || audioState === "playing") && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  className="w-full max-w-xs space-y-3"
+                >
+                  {showSendButton && (
+                    <motion.button
+                      whileTap={{ scale: 0.95 }}
+                      onClick={handleSendAudio}
+                      disabled={isLoading}
+                      className="w-full py-4 rounded-xl bg-primary text-primary-foreground font-display font-semibold text-base flex items-center justify-center gap-2 glow-gold disabled:opacity-50"
+                    >
+                      <Send className="w-5 h-5" />
+                      Enviar
+                    </motion.button>
+                  )}
                   <motion.button
                     whileTap={{ scale: 0.95 }}
                     onClick={handleDelete}
-                    className="flex-1 py-4 rounded-xl bg-secondary text-foreground font-display font-semibold text-base border border-border/40 flex items-center justify-center gap-2 hover:border-destructive/40 transition-colors"
+                    className="w-full py-3 rounded-xl bg-secondary text-foreground font-display text-sm border border-border/40 flex items-center justify-center gap-2 hover:border-destructive/40 transition-colors"
                   >
-                    <Trash2 className="w-5 h-5" />
+                    <Trash2 className="w-4 h-4" />
                     Regravar
                   </motion.button>
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    onClick={handleSendAudio}
-                    disabled={isLoading}
-                    className="flex-1 py-4 rounded-xl bg-primary text-primary-foreground font-display font-semibold text-base flex items-center justify-center gap-2 glow-gold disabled:opacity-50"
-                  >
-                    <Send className="w-5 h-5" />
-                    Enviar
-                  </motion.button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
+
+        {/* ─── TEXT MODE ─── */}
+        {inputMode === "text" && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="w-full space-y-4"
+          >
+            <div className="relative">
+              <textarea
+                value={dreamText}
+                onChange={(e) => setDreamText(e.target.value.slice(0, MAX_TEXT_LENGTH))}
+                placeholder="Descreva seu sonho com o máximo de detalhes possível..."
+                rows={6}
+                className="w-full rounded-xl bg-secondary/80 border border-border/40 text-foreground placeholder:text-muted-foreground/60 p-4 text-base font-body resize-none focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/40 transition-all"
+              />
+              <span className={`absolute bottom-3 right-3 text-xs font-display ${
+                dreamText.length > MAX_TEXT_LENGTH * 0.9
+                  ? 'text-destructive'
+                  : 'text-muted-foreground/60'
+              }`}>
+                {dreamText.length}/{MAX_TEXT_LENGTH}
+              </span>
+            </div>
+
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={handleSendText}
+              disabled={isLoading || textSubmitting || dreamText.trim().length < 10}
+              className="w-full py-4 rounded-xl bg-primary text-primary-foreground font-display font-semibold text-base flex items-center justify-center gap-2 glow-gold disabled:opacity-50 transition-all"
+            >
+              <Send className="w-5 h-5" />
+              Enviar
+            </motion.button>
+          </motion.div>
+        )}
       </div>
     </motion.section>
   );
