@@ -10,6 +10,7 @@ const navItems = [
   { to: '/admin/logs',      icon: '📋', label: 'Logs' },
   { to: '/admin/storage',   icon: '🗂️', label: 'Arquivos' },
   { to: '/admin/settings',  icon: '⚙️', label: 'Config' },
+  { to: '/admin/openai',    icon: '🤖', label: 'OpenAI' },
 ];
 
 export default function AdminLayout() {

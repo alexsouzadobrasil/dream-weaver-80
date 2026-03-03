@@ -17,6 +17,7 @@ import AdminDonations from "./pages/admin/AdminDonations";
 import AdminLogs from "./pages/admin/AdminLogs";
 import AdminStorage from "./pages/admin/AdminStorage";
 import AdminSettings from "./pages/admin/AdminSettings";
+import AdminOpenAI from "./pages/admin/AdminOpenAI";
 
 const queryClient = new QueryClient();
 
@@ -44,6 +45,7 @@ const App = () => (
             <Route path="logs"           element={<AdminLogs />} />
             <Route path="storage"        element={<AdminStorage />} />
             <Route path="settings"       element={<AdminSettings />} />
+            <Route path="openai"         element={<AdminOpenAI />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />

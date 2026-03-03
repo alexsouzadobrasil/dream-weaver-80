@@ -212,9 +212,21 @@ const Index = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  const APP_VERSION = '1.2.0';
+  const BUILD_DATE  = '2026-03-03';
+
   return (
     <div className="min-h-screen bg-gradient-mystic">
-      {step === "hero" && <HeroSection onStart={handleStart} dreamHistory={dreamHistory} />}
+      {step === "hero" && (
+        <>
+          <HeroSection onStart={handleStart} dreamHistory={dreamHistory} />
+          <footer className="fixed bottom-2 right-3 z-50 pointer-events-none">
+            <span className="text-[10px] text-white/20 font-mono select-none">
+              v{APP_VERSION} · {BUILD_DATE}
+            </span>
+          </footer>
+        </>
+      )}
       {step === "form" && (
         <div ref={formRef} className="min-h-screen flex flex-col">
           <button
