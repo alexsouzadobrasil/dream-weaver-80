@@ -1,11 +1,11 @@
-// Service Worker for Push Notifications
+// Service Worker for Push Notifications — Jerry
 self.addEventListener('push', (event) => {
   const data = event.data?.json() ?? {};
 
   const options = {
     body:    data.body    ?? 'Nova notificação do Jerry',
-    icon:    '/favicon.ico',
-    badge:   '/favicon.ico',
+    icon:    '/icon-192.png',
+    badge:   '/badge-72.png',
     tag:     `jerry-${data.type ?? 'general'}`,
     data:    { dreamId: data.dreamId, type: data.type },
     actions: data.dreamId ? [
@@ -26,8 +26,8 @@ self.addEventListener('notificationclick', (event) => {
 
   const dreamId = event.notification.data?.dreamId;
   const url = dreamId
-    ? `/?dream=${dreamId}`
-    : '/';
+    ? `https://jerry.com.br/dream/${dreamId}`
+    : 'https://jerry.com.br';
 
   event.waitUntil(
     clients.matchAll({ type: 'window' }).then((windowClients) => {

@@ -7,7 +7,7 @@ import LoadingOverlay from "@/components/LoadingOverlay";
 import heroBg from "@/assets/hero-bg.jpg";
 import { toast } from "sonner";
 import type { DreamEntry } from "@/components/DreamHistoryCard";
-import { submitAudio, submitText, pollDreamStatus } from "@/lib/dreamApi";
+import { submitAudio, submitText, pollDreamStatus, apiAssetUrl } from "@/lib/dreamApi";
 import { saveAudioLocally, removeAudio, getPendingAudios } from "@/lib/audioStorage";
 import { playMysticAmbient, playTransition, playError, playSuccess } from "@/lib/sounds";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
@@ -114,7 +114,7 @@ const Index = () => {
         symbols: result.interpretation || "",
         emotions: "",
         message: "",
-        thumbnailUrl: result.image_path ? `https://jerry.com.br/${result.image_path}` : heroBg,
+        thumbnailUrl: result.image_path ? apiAssetUrl(result.image_path) : heroBg,
         dreamId: dreamId.toString(),
       };
       setInterpretation(interp);
