@@ -1,9 +1,5 @@
-// Usa o mesmo domínio do frontend (jerry.com.br) para evitar problemas de SSL
-// e certificado no subdomínio api.jerry.com.br.
-// Ambos apontam para o mesmo servidor e public_html/.
-const API_BASE = 'https://jerry.com.br';
+const API_BASE = 'https://api.jerry.com.br';
 
-// Timeout wrapper for fetch requests
 function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = 15000): Promise<Response> {
   return Promise.race([
     fetch(url, options),
@@ -13,7 +9,6 @@ function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = 15
   ]);
 }
 
-// Base API helper with credentials and API key
 async function apiFetch(path: string, options: RequestInit = {}, timeoutMs = 15000): Promise<Response> {
   const apiKey = localStorage.getItem('jerry_api_key') ?? '';
   return fetchWithTimeout(`${API_BASE}/${path}`, {
@@ -117,7 +112,7 @@ export async function pollDreamStatus(
         const res = await apiFetch(`api/dream_status.php?id=${dreamId}`, {}, 10000);
         const json = await res.json();
         if (!json.success) throw new Error(json.error || 'Erro ao consultar status');
-        const data: DreamStatusResponse = json.data;
+        const data: DreamStatusResponse = json.data.dream;
         failCount = 0;
         onUpdate?.(data);
 
@@ -142,7 +137,7 @@ export async function pollDreamStatus(
 // ─── TTS: Gerar áudio da interpretação ───
 export async function generateInterpretationAudio(text: string): Promise<Blob> {
   await getApiKey();
-  const truncated = text.slice(0, 4096); // API limit: 4096 chars
+  const truncated = text.slice(0, 4096);
 
   try {
     const res = await apiFetch('api/tts.php', {
@@ -276,29 +271,15 @@ export interface BillingResponse {
   mock: boolean;
 }
 
-export interface CustomerData {
-  customer_name?: string;
-  customer_email?: string;
-  customer_phone?: string;
-  customer_tax_id: string; // CPF (11 dígitos) ou CNPJ (14 dígitos) — obrigatório no modo real
-}
-
 export async function createBilling(
   amountCents?: number,
   dreamId?: number,
   description?: string,
-  customer?: CustomerData,
 ): Promise<BillingResponse> {
-  const body: any = {};
+  const body: Record<string, any> = {};
   if (amountCents) body.amount_cents = amountCents;
   if (dreamId) body.dream_id = dreamId;
   if (description) body.description = description;
-  if (customer) {
-    if (customer.customer_name)  body.customer_name  = customer.customer_name;
-    if (customer.customer_email) body.customer_email = customer.customer_email;
-    if (customer.customer_phone) body.customer_phone = customer.customer_phone;
-    body.customer_tax_id = customer.customer_tax_id;
-  }
 
   const res = await apiFetch('api/billing.php', {
     method: 'POST',
@@ -321,4 +302,9 @@ export async function pollBillingStatus(txid: string): Promise<string> {
     await new Promise(r => setTimeout(r, 5000));
   }
   return 'timeout';
+}
+
+// Helper: build full URL for API-relative paths (e.g. image_path, narration_audio_path)
+export function apiAssetUrl(relativePath: string): string {
+  return `${API_BASE}/${relativePath}`;
 }
