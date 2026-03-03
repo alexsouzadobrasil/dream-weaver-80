@@ -1,11 +1,14 @@
 import { motion } from "framer-motion";
 import { Sparkles, Heart, Eye, ArrowLeft, Share2, Gift, MessageCircle, WifiOff, RefreshCw, Bell, BellOff, Copy, Check } from "lucide-react";
 import { playReveal, playClick } from "@/lib/sounds";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
+import { createBilling, pollBillingStatus, type BillingResponse } from "@/lib/dreamApi";
 import EmojiReactions from "./EmojiReactions";
 import DreamComments from "./DreamComments";
 import AudioPlayButton from "./AudioPlayButton";
+import { toast } from "sonner";
 
 interface DreamInterpretation {
   title: string;
@@ -24,71 +27,79 @@ interface DreamResultProps {
   onGoHome: () => void;
 }
 
+const DONATION_AMOUNTS = [
+  { label: 'R$ 5', cents: 500 },
+  { label: 'R$ 10', cents: 1000 },
+  { label: 'R$ 25', cents: 2500 },
+];
+
 const DreamResult = ({ interpretation, onNewDream, onGoHome }: DreamResultProps) => {
   const online = useOnlineStatus();
   const dreamId = interpretation.dreamId || interpretation.title.slice(0, 20);
-  const [pushStatus, setPushStatus] = useState<'default' | 'granted' | 'denied' | 'unsupported'>('default');
-  const [pixData, setPixData] = useState<{ qrCode?: string; pixKey?: string; error?: boolean } | null>(null);
+  const { status: pushStatus, subscribe: subscribePush } = usePushNotifications();
+  const [pixData, setPixData] = useState<BillingResponse | null>(null);
   const [pixCopied, setPixCopied] = useState(false);
   const [loadingPix, setLoadingPix] = useState(false);
-
-  useEffect(() => {
-    if (!interpretation.isWaiting) playReveal();
-  }, [interpretation.isWaiting]);
-
-  // Check push permission status
-  useEffect(() => {
-    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
-      setPushStatus('unsupported');
-    } else {
-      setPushStatus(Notification.permission as 'default' | 'granted' | 'denied');
-    }
-  }, []);
-
-  // Load Pix data on waiting screen
-  useEffect(() => {
-    if (isWaiting && online) {
-      loadPixData();
-    }
-  }, [interpretation.isWaiting, online]);
+  const [billingStatus, setBillingStatus] = useState<string | null>(null);
+  const [selectedAmount, setSelectedAmount] = useState(500);
+  const pollingRef = useRef(false);
 
   const isWaiting = interpretation.isWaiting || (!interpretation.symbols && !online);
 
-  const loadPixData = async () => {
+  useEffect(() => {
+    if (!isWaiting) playReveal();
+  }, [isWaiting]);
+
+  const handleRequestPush = async () => {
+    playClick();
+    const success = await subscribePush();
+    if (success) {
+      toast.success('Notificações ativadas!');
+    }
+  };
+
+  const loadPixData = async (amountCents: number) => {
     setLoadingPix(true);
+    setPixData(null);
+    setBillingStatus(null);
     try {
-      const res = await fetch('https://api.jerry.com.br/api/donate.php?format=json');
-      if (res.ok) {
-        const data = await res.json();
-        setPixData({ qrCode: data.qr_code_url, pixKey: data.pix_key });
-      } else {
-        setPixData({ error: true });
-      }
-    } catch {
-      setPixData({ error: true });
+      const numDreamId = parseInt(dreamId, 10);
+      const data = await createBilling(
+        amountCents,
+        isNaN(numDreamId) ? undefined : numDreamId,
+        'Apoio voluntário ao Jerry'
+      );
+      setPixData(data);
+      // Start polling for payment status
+      startStatusPolling(data.txid);
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao gerar QR Code');
     } finally {
       setLoadingPix(false);
     }
   };
 
-  const handleRequestPush = async () => {
-    playClick();
+  const startStatusPolling = async (txid: string) => {
+    if (pollingRef.current) return;
+    pollingRef.current = true;
     try {
-      const permission = await Notification.requestPermission();
-      setPushStatus(permission as any);
-      if (permission === 'granted') {
-        // TODO: Register push subscription with backend
+      const status = await pollBillingStatus(txid);
+      setBillingStatus(status);
+      if (status === 'confirmed') {
+        toast.success('Doação confirmada! Muito obrigado! 💛');
       }
     } catch {
-      setPushStatus('denied');
+      setBillingStatus('error');
+    } finally {
+      pollingRef.current = false;
     }
   };
 
   const handleCopyPix = async () => {
-    if (!pixData?.pixKey) return;
+    if (!pixData?.pix_copy_paste) return;
     playClick();
     try {
-      await navigator.clipboard.writeText(pixData.pixKey);
+      await navigator.clipboard.writeText(pixData.pix_copy_paste);
       setPixCopied(true);
       setTimeout(() => setPixCopied(false), 3000);
     } catch {}
@@ -231,7 +242,7 @@ const DreamResult = ({ interpretation, onNewDream, onGoHome }: DreamResultProps)
               </motion.div>
             )}
 
-            {/* Pix donation with QR code */}
+            {/* Pix donation with AbacatePay billing */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -247,31 +258,61 @@ const DreamResult = ({ interpretation, onNewDream, onGoHome }: DreamResultProps)
                 Ajude-nos a manter esse serviço gratuito com uma doação via Pix. ✨
               </p>
 
-              {loadingPix && (
+              {billingStatus === 'confirmed' ? (
+                <div className="text-center py-4">
+                  <p className="text-lg mb-1">💛</p>
+                  <p className="text-sm font-display font-semibold text-foreground">Obrigado pela sua doação!</p>
+                  <p className="text-xs text-muted-foreground mt-1">Sua contribuição nos ajuda a continuar.</p>
+                </div>
+              ) : !pixData && !loadingPix ? (
+                <div className="space-y-3">
+                  <div className="flex gap-2 justify-center">
+                    {DONATION_AMOUNTS.map(({ label, cents }) => (
+                      <button
+                        key={cents}
+                        onClick={() => { playClick(); setSelectedAmount(cents); }}
+                        className={`px-4 py-2 rounded-lg text-sm font-display font-semibold transition-all ${
+                          selectedAmount === cents
+                            ? 'bg-primary text-primary-foreground shadow-[0_0_12px_hsl(var(--primary)/0.3)]'
+                            : 'bg-secondary text-muted-foreground border border-border/40'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  <motion.button
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => loadPixData(selectedAmount)}
+                    className="flex w-full py-3 rounded-xl bg-accent text-accent-foreground font-display font-semibold text-sm items-center justify-center gap-2 transition-all"
+                  >
+                    <span className="text-lg">🥑</span>
+                    Gerar QR Code Pix
+                  </motion.button>
+                </div>
+              ) : loadingPix ? (
                 <div className="flex justify-center py-6">
                   <motion.div animate={{ rotate: 360 }} transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}>
                     <RefreshCw className="w-6 h-6 text-muted-foreground" />
                   </motion.div>
                 </div>
-              )}
-
-              {pixData && !pixData.error && (
+              ) : pixData ? (
                 <div className="space-y-4">
-                  {pixData.qrCode && (
+                  {pixData.qr_code_url && (
                     <div className="flex justify-center">
                       <div className="bg-foreground p-3 rounded-xl">
                         <img
-                          src={pixData.qrCode}
+                          src={pixData.qr_code_url}
                           alt="QR Code Pix"
                           className="w-40 h-40 md:w-48 md:h-48 object-contain"
                         />
                       </div>
                     </div>
                   )}
-                  {pixData.pixKey && (
+                  {pixData.pix_copy_paste && (
                     <div className="flex items-center gap-2">
                       <div className="flex-1 bg-secondary rounded-lg px-3 py-2.5 text-xs text-muted-foreground font-mono truncate border border-border/40">
-                        {pixData.pixKey}
+                        {pixData.pix_copy_paste}
                       </div>
                       <motion.button
                         whileTap={{ scale: 0.9 }}
@@ -283,35 +324,21 @@ const DreamResult = ({ interpretation, onNewDream, onGoHome }: DreamResultProps)
                       </motion.button>
                     </div>
                   )}
+                  {pixData.payment_url && (
+                    <a
+                      href={pixData.payment_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block text-center text-xs text-primary underline font-display"
+                    >
+                      Ou pague pelo site do AbacatePay →
+                    </a>
+                  )}
+                  {billingStatus === 'expired' && (
+                    <p className="text-xs text-destructive text-center">Tempo expirado. Gere um novo QR Code.</p>
+                  )}
                 </div>
-              )}
-
-              {pixData?.error && (
-                <div className="text-center py-4">
-                  <p className="text-sm text-muted-foreground mb-2">Não foi possível carregar o QR Code.</p>
-                  <motion.button
-                    whileTap={{ scale: 0.97 }}
-                    onClick={loadPixData}
-                    className="text-primary text-sm font-display font-semibold"
-                  >
-                    Tentar novamente
-                  </motion.button>
-                </div>
-              )}
-
-              {!pixData && !loadingPix && (
-                <motion.a
-                  whileTap={{ scale: 0.97 }}
-                  href="https://api.jerry.com.br/api/donate.php"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => playClick()}
-                  className="flex w-full py-3 rounded-xl bg-[hsl(160_60%_38%)] text-foreground font-display font-semibold text-sm items-center justify-center gap-2 border border-[hsl(160_60%_45%/0.3)] shadow-[0_0_15px_hsl(160_60%_38%/0.2)] hover:shadow-[0_0_25px_hsl(160_60%_38%/0.3)] transition-all no-underline"
-                >
-                  <span className="text-lg">🥑</span>
-                  Doar via Pix (AbacatePay)
-                </motion.a>
-              )}
+              ) : null}
             </motion.div>
           </>
         )}
@@ -350,7 +377,7 @@ const DreamResult = ({ interpretation, onNewDream, onGoHome }: DreamResultProps)
                     <AudioPlayButton text={interpretation.symbols} size="sm" />
                   </div>
                   <p className="text-sm text-muted-foreground leading-relaxed">{interpretation.symbols}</p>
-                  <DreamComments dreamId={`symbols_${dreamId}`} />
+                  <DreamComments dreamId={dreamId} />
                 </motion.div>
               )}
 
@@ -387,20 +414,17 @@ const DreamResult = ({ interpretation, onNewDream, onGoHome }: DreamResultProps)
                 <p className="text-sm text-muted-foreground leading-relaxed mb-3">
                   Ajude-nos a manter esse serviço gratuito e compartilhe seu sonho. ✨
                 </p>
-                <motion.a
+                <motion.button
                   whileTap={{ scale: 0.97 }}
-                  href="https://api.jerry.com.br/api/donate.php"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => playClick()}
-                  className="flex w-full mb-3 py-3 rounded-xl bg-[hsl(160_60%_38%)] text-foreground font-display font-semibold text-sm items-center justify-center gap-2 border border-[hsl(160_60%_45%/0.3)] shadow-[0_0_15px_hsl(160_60%_38%/0.2)] transition-all no-underline"
+                  onClick={() => loadPixData(500)}
+                  className="flex w-full mb-3 py-3 rounded-xl bg-accent text-accent-foreground font-display font-semibold text-sm items-center justify-center gap-2 transition-all"
                 >
                   <span className="text-lg">🥑</span>
                   Doar via Pix
-                </motion.a>
+                </motion.button>
                 <div className="flex flex-wrap gap-2">
                   <motion.button whileTap={{ scale: 0.97 }} onClick={() => handleShare('whatsapp')}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[hsl(142_70%_35%)] text-foreground font-display text-xs font-semibold">
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-accent text-accent-foreground font-display text-xs font-semibold">
                     💬 WhatsApp
                   </motion.button>
                   <motion.button whileTap={{ scale: 0.97 }} onClick={() => handleShare('twitter')}
@@ -408,7 +432,7 @@ const DreamResult = ({ interpretation, onNewDream, onGoHome }: DreamResultProps)
                     𝕏 Twitter
                   </motion.button>
                   <motion.button whileTap={{ scale: 0.97 }} onClick={() => handleShare('facebook')}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[hsl(220_60%_45%)] text-foreground font-display text-xs font-semibold">
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-secondary text-foreground font-display text-xs font-semibold border border-border">
                     📘 Facebook
                   </motion.button>
                   {typeof navigator !== 'undefined' && navigator.share && (

@@ -1,98 +1,82 @@
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { ThumbsUp, ThumbsDown } from "lucide-react";
 import { playClick } from "@/lib/sounds";
-
-const REACTIONS = [
-  { emoji: "❤️", label: "Amor" },
-  { emoji: "😢", label: "Triste" },
-  { emoji: "😮", label: "Surpreso" },
-  { emoji: "🙏", label: "Gratidão" },
-  { emoji: "✨", label: "Mágico" },
-  { emoji: "😨", label: "Medo" },
-];
+import { toggleReaction, fetchReactions } from "@/lib/dreamApi";
 
 interface EmojiReactionsProps {
   dreamId: string;
   compact?: boolean;
 }
 
-interface ReactionData {
-  [emoji: string]: number;
-}
-
 const EmojiReactions = ({ dreamId, compact }: EmojiReactionsProps) => {
-  const storageKey = `reactions_${dreamId}`;
-  const myKey = `my_reactions_${dreamId}`;
+  const numericId = parseInt(dreamId, 10);
+  const isValid = !isNaN(numericId);
 
-  const [reactions, setReactions] = useState<ReactionData>(() => {
-    try {
-      return JSON.parse(localStorage.getItem(storageKey) || "{}");
-    } catch { return {}; }
-  });
+  const [totalReactions, setTotalReactions] = useState(0);
+  const [positiveReactions, setPositiveReactions] = useState(0);
+  const [myReaction, setMyReaction] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const [myReactions, setMyReactions] = useState<string[]>(() => {
-    try {
-      return JSON.parse(localStorage.getItem(myKey) || "[]");
-    } catch { return []; }
-  });
+  useEffect(() => {
+    if (!isValid) return;
+    fetchReactions(numericId)
+      .then(data => {
+        setTotalReactions(data.total_reactions);
+        setPositiveReactions(data.positive_reactions);
+        setMyReaction(data.my_reaction);
+      })
+      .catch(() => {});
+  }, [numericId, isValid]);
 
-  const [showBurst, setShowBurst] = useState<string | null>(null);
-
-  const toggleReaction = (emoji: string) => {
+  const handleToggle = async (type: 'like' | 'dislike') => {
+    if (!isValid || loading) return;
     playClick();
-    const alreadyReacted = myReactions.includes(emoji);
-    const newMy = alreadyReacted ? myReactions.filter(e => e !== emoji) : [...myReactions, emoji];
-    const newReactions = { ...reactions };
-    newReactions[emoji] = (newReactions[emoji] || 0) + (alreadyReacted ? -1 : 1);
-    if (newReactions[emoji] <= 0) delete newReactions[emoji];
-
-    setMyReactions(newMy);
-    setReactions(newReactions);
-    localStorage.setItem(storageKey, JSON.stringify(newReactions));
-    localStorage.setItem(myKey, JSON.stringify(newMy));
-
-    if (!alreadyReacted) {
-      setShowBurst(emoji);
-      setTimeout(() => setShowBurst(null), 600);
-    }
+    setLoading(true);
+    try {
+      const result = await toggleReaction(numericId, type);
+      setTotalReactions(result.total_reactions);
+      setPositiveReactions(result.positive_reactions);
+      setMyReaction(result.my_reaction);
+    } catch {}
+    setLoading(false);
   };
 
+  if (!isValid) return null;
+
+  const negativeReactions = totalReactions - positiveReactions;
+
   return (
-    <div className={`flex flex-wrap gap-1.5 ${compact ? '' : 'mt-3'}`}>
-      {REACTIONS.map(({ emoji, label }) => {
-        const count = reactions[emoji] || 0;
-        const isActive = myReactions.includes(emoji);
-        return (
-          <motion.button
-            key={emoji}
-            type="button"
-            whileTap={{ scale: 0.85 }}
-            onClick={() => toggleReaction(emoji)}
-            className={`relative flex items-center gap-1 px-2.5 py-1.5 rounded-full text-sm transition-all ${
-              isActive
-                ? 'bg-primary/20 border border-primary/40'
-                : 'bg-secondary/50 border border-border/30 hover:border-border/60'
-            }`}
-            title={label}
-          >
-            <span className="text-base">{emoji}</span>
-            {count > 0 && <span className="text-xs text-muted-foreground">{count}</span>}
-            <AnimatePresence>
-              {showBurst === emoji && (
-                <motion.span
-                  className="absolute -top-3 left-1/2 -translate-x-1/2 text-lg pointer-events-none"
-                  initial={{ opacity: 1, y: 0, scale: 1 }}
-                  animate={{ opacity: 0, y: -16, scale: 1.5 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.5 }}
-                >
-                  {emoji}
-                </motion.span>
-              )}
-            </AnimatePresence>
-          </motion.button>
-        );
-      })}
+    <div className={`flex items-center gap-2 ${compact ? '' : 'mt-3'}`}>
+      <motion.button
+        type="button"
+        whileTap={{ scale: 0.85 }}
+        onClick={() => handleToggle('like')}
+        disabled={loading}
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-all ${
+          myReaction === 'like'
+            ? 'bg-primary/20 border border-primary/40 text-primary'
+            : 'bg-secondary/50 border border-border/30 hover:border-border/60 text-muted-foreground'
+        }`}
+      >
+        <ThumbsUp className="w-4 h-4" />
+        {positiveReactions > 0 && <span className="text-xs">{positiveReactions}</span>}
+      </motion.button>
+
+      <motion.button
+        type="button"
+        whileTap={{ scale: 0.85 }}
+        onClick={() => handleToggle('dislike')}
+        disabled={loading}
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-all ${
+          myReaction === 'dislike'
+            ? 'bg-destructive/20 border border-destructive/40 text-destructive'
+            : 'bg-secondary/50 border border-border/30 hover:border-border/60 text-muted-foreground'
+        }`}
+      >
+        <ThumbsDown className="w-4 h-4" />
+        {negativeReactions > 0 && <span className="text-xs">{negativeReactions}</span>}
+      </motion.button>
     </div>
   );
 };

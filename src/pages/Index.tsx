@@ -107,13 +107,14 @@ const Index = () => {
   const processDream = async (dreamId: number, dreamText: string) => {
     try {
       const result = await pollDreamStatus(dreamId);
+      const displayText = result.dream_text || result.transcription || dreamText;
       const interp = {
-        title: dreamText.slice(0, 40) + (dreamText.length > 40 ? "..." : ""),
+        title: displayText.slice(0, 40) + (displayText.length > 40 ? "..." : ""),
         emotion: "paz",
         symbols: result.interpretation || "",
         emotions: "",
         message: "",
-        thumbnailUrl: result.image_url || heroBg,
+        thumbnailUrl: result.image_path ? `https://api.jerry.com.br/${result.image_path}` : heroBg,
         dreamId: dreamId.toString(),
       };
       setInterpretation(interp);
