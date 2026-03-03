@@ -174,7 +174,7 @@ const HeroSection = ({ onStart, dreamHistory = [] }: HeroSectionProps) => {
     return () => clearInterval(timer);
   }, []);
 
-  const visibleDreams = dreamHistory.slice(0, 3);
+  const visibleDreams = dreamHistory.filter(d => d.interpretation && d.interpretation.trim().length > 0).slice(0, 3);
 
   return (
     <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-gradient-mystic">
