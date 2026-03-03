@@ -4,7 +4,7 @@ import { playReveal, playClick } from "@/lib/sounds";
 import { useEffect, useState, useRef } from "react";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
-import { createBilling, pollBillingStatus, type BillingResponse } from "@/lib/dreamApi";
+import { createBilling, pollBillingStatus, type BillingResponse, type CustomerData } from "@/lib/dreamApi";
 import EmojiReactions from "./EmojiReactions";
 import DreamComments from "./DreamComments";
 import AudioPlayButton from "./AudioPlayButton";
@@ -44,6 +44,14 @@ const DreamResult = ({ interpretation, onNewDream, onGoHome }: DreamResultProps)
   const [selectedAmount, setSelectedAmount] = useState(500);
   const pollingRef = useRef(false);
 
+  // Donor form state (customer_tax_id required by AbacatePay in production)
+  const [showDonorForm, setShowDonorForm] = useState(false);
+  const [donorName, setDonorName] = useState('');
+  const [donorEmail, setDonorEmail] = useState('');
+  const [donorPhone, setDonorPhone] = useState('');
+  const [donorTaxId, setDonorTaxId] = useState('');
+  const [taxIdError, setTaxIdError] = useState('');
+
   const isWaiting = interpretation.isWaiting || (!interpretation.symbols && !online);
 
   useEffect(() => {
@@ -58,16 +66,18 @@ const DreamResult = ({ interpretation, onNewDream, onGoHome }: DreamResultProps)
     }
   };
 
-  const loadPixData = async (amountCents: number) => {
+  const loadPixData = async (amountCents: number, customer?: CustomerData) => {
     setLoadingPix(true);
     setPixData(null);
     setBillingStatus(null);
+    setShowDonorForm(false);
     try {
       const numDreamId = parseInt(dreamId, 10);
       const data = await createBilling(
         amountCents,
         isNaN(numDreamId) ? undefined : numDreamId,
-        'Apoio voluntário ao Jerry'
+        'Apoio voluntário ao Jerry',
+        customer,
       );
       setPixData(data);
       // Start polling for payment status
@@ -77,6 +87,30 @@ const DreamResult = ({ interpretation, onNewDream, onGoHome }: DreamResultProps)
     } finally {
       setLoadingPix(false);
     }
+  };
+
+  const handleOpenDonorForm = (cents: number) => {
+    playClick();
+    setSelectedAmount(cents);
+    setPixData(null);
+    setBillingStatus(null);
+    setTaxIdError('');
+    setShowDonorForm(true);
+  };
+
+  const handleDonorSubmit = () => {
+    const digits = donorTaxId.replace(/\D/g, '');
+    if (digits.length !== 11 && digits.length !== 14) {
+      setTaxIdError('CPF deve ter 11 dígitos ou CNPJ 14 dígitos (somente números).');
+      return;
+    }
+    setTaxIdError('');
+    loadPixData(selectedAmount, {
+      customer_name:  donorName  || undefined,
+      customer_email: donorEmail || undefined,
+      customer_phone: donorPhone || undefined,
+      customer_tax_id: digits,
+    });
   };
 
   const startStatusPolling = async (txid: string) => {
@@ -264,6 +298,63 @@ const DreamResult = ({ interpretation, onNewDream, onGoHome }: DreamResultProps)
                   <p className="text-sm font-display font-semibold text-foreground">Obrigado pela sua doação!</p>
                   <p className="text-xs text-muted-foreground mt-1">Sua contribuição nos ajuda a continuar.</p>
                 </div>
+              ) : showDonorForm ? (
+                /* ── Formulário de dados do doador ── */
+                <div className="space-y-2.5">
+                  <p className="text-xs text-muted-foreground">Para continuar, informe seu CPF (obrigatório):</p>
+                  <input
+                    type="text"
+                    placeholder="Nome completo (opcional)"
+                    value={donorName}
+                    onChange={e => setDonorName(e.target.value)}
+                    className="w-full bg-secondary rounded-lg px-3 py-2.5 text-sm text-foreground border border-border/40 outline-none focus:border-primary/50 placeholder:text-muted-foreground/50"
+                  />
+                  <input
+                    type="email"
+                    inputMode="email"
+                    placeholder="E-mail (opcional)"
+                    value={donorEmail}
+                    onChange={e => setDonorEmail(e.target.value)}
+                    className="w-full bg-secondary rounded-lg px-3 py-2.5 text-sm text-foreground border border-border/40 outline-none focus:border-primary/50 placeholder:text-muted-foreground/50"
+                  />
+                  <input
+                    type="tel"
+                    inputMode="numeric"
+                    placeholder="Telefone com DDD (opcional)"
+                    value={donorPhone}
+                    onChange={e => setDonorPhone(e.target.value.replace(/\D/g, ''))}
+                    maxLength={11}
+                    className="w-full bg-secondary rounded-lg px-3 py-2.5 text-sm text-foreground border border-border/40 outline-none focus:border-primary/50 placeholder:text-muted-foreground/50"
+                  />
+                  <div>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="CPF (11 dígitos) ou CNPJ (14 dígitos) *"
+                      value={donorTaxId}
+                      onChange={e => { setDonorTaxId(e.target.value.replace(/\D/g, '')); setTaxIdError(''); }}
+                      maxLength={14}
+                      className={`w-full bg-secondary rounded-lg px-3 py-2.5 text-sm text-foreground border ${taxIdError ? 'border-destructive' : 'border-border/40'} outline-none focus:border-primary/50 placeholder:text-muted-foreground/50`}
+                    />
+                    {taxIdError && <p className="text-xs text-destructive mt-1">{taxIdError}</p>}
+                  </div>
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      onClick={() => setShowDonorForm(false)}
+                      className="flex-1 py-2.5 rounded-xl bg-secondary text-muted-foreground font-display font-semibold text-sm border border-border/40"
+                    >
+                      Cancelar
+                    </button>
+                    <motion.button
+                      whileTap={{ scale: 0.97 }}
+                      onClick={handleDonorSubmit}
+                      className="flex-1 py-2.5 rounded-xl bg-accent text-accent-foreground font-display font-semibold text-sm flex items-center justify-center gap-1.5"
+                    >
+                      <span className="text-base">🥑</span>
+                      Gerar PIX
+                    </motion.button>
+                  </div>
+                </div>
               ) : !pixData && !loadingPix ? (
                 <div className="space-y-3">
                   <div className="flex gap-2 justify-center">
@@ -283,7 +374,7 @@ const DreamResult = ({ interpretation, onNewDream, onGoHome }: DreamResultProps)
                   </div>
                   <motion.button
                     whileTap={{ scale: 0.97 }}
-                    onClick={() => loadPixData(selectedAmount)}
+                    onClick={() => handleOpenDonorForm(selectedAmount)}
                     className="flex w-full py-3 rounded-xl bg-accent text-accent-foreground font-display font-semibold text-sm items-center justify-center gap-2 transition-all"
                   >
                     <span className="text-lg">🥑</span>
@@ -414,14 +505,113 @@ const DreamResult = ({ interpretation, onNewDream, onGoHome }: DreamResultProps)
                 <p className="text-sm text-muted-foreground leading-relaxed mb-3">
                   Ajude-nos a manter esse serviço gratuito e compartilhe seu sonho. ✨
                 </p>
-                <motion.button
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => loadPixData(500)}
-                  className="flex w-full mb-3 py-3 rounded-xl bg-accent text-accent-foreground font-display font-semibold text-sm items-center justify-center gap-2 transition-all"
-                >
-                  <span className="text-lg">🥑</span>
-                  Doar via Pix
-                </motion.button>
+
+                {billingStatus === 'confirmed' ? (
+                  <div className="text-center py-3 mb-3">
+                    <p className="text-lg mb-1">💛</p>
+                    <p className="text-sm font-display font-semibold text-foreground">Obrigado pela doação!</p>
+                  </div>
+                ) : showDonorForm ? (
+                  /* ── Formulário de dados do doador ── */
+                  <div className="space-y-2.5 mb-3">
+                    <p className="text-xs text-muted-foreground">Para continuar, informe seu CPF (obrigatório):</p>
+                    <input
+                      type="text"
+                      placeholder="Nome completo (opcional)"
+                      value={donorName}
+                      onChange={e => setDonorName(e.target.value)}
+                      className="w-full bg-secondary rounded-lg px-3 py-2.5 text-sm text-foreground border border-border/40 outline-none focus:border-primary/50 placeholder:text-muted-foreground/50"
+                    />
+                    <input
+                      type="email"
+                      inputMode="email"
+                      placeholder="E-mail (opcional)"
+                      value={donorEmail}
+                      onChange={e => setDonorEmail(e.target.value)}
+                      className="w-full bg-secondary rounded-lg px-3 py-2.5 text-sm text-foreground border border-border/40 outline-none focus:border-primary/50 placeholder:text-muted-foreground/50"
+                    />
+                    <input
+                      type="tel"
+                      inputMode="numeric"
+                      placeholder="Telefone com DDD (opcional)"
+                      value={donorPhone}
+                      onChange={e => setDonorPhone(e.target.value.replace(/\D/g, ''))}
+                      maxLength={11}
+                      className="w-full bg-secondary rounded-lg px-3 py-2.5 text-sm text-foreground border border-border/40 outline-none focus:border-primary/50 placeholder:text-muted-foreground/50"
+                    />
+                    <div>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="CPF (11 dígitos) ou CNPJ (14 dígitos) *"
+                        value={donorTaxId}
+                        onChange={e => { setDonorTaxId(e.target.value.replace(/\D/g, '')); setTaxIdError(''); }}
+                        maxLength={14}
+                        className={`w-full bg-secondary rounded-lg px-3 py-2.5 text-sm text-foreground border ${taxIdError ? 'border-destructive' : 'border-border/40'} outline-none focus:border-primary/50 placeholder:text-muted-foreground/50`}
+                      />
+                      {taxIdError && <p className="text-xs text-destructive mt-1">{taxIdError}</p>}
+                    </div>
+                    <div className="flex gap-2 pt-1">
+                      <button
+                        onClick={() => setShowDonorForm(false)}
+                        className="flex-1 py-2.5 rounded-xl bg-secondary text-muted-foreground font-display font-semibold text-sm border border-border/40"
+                      >
+                        Cancelar
+                      </button>
+                      <motion.button
+                        whileTap={{ scale: 0.97 }}
+                        onClick={handleDonorSubmit}
+                        className="flex-1 py-2.5 rounded-xl bg-accent text-accent-foreground font-display font-semibold text-sm flex items-center justify-center gap-1.5"
+                      >
+                        <span className="text-base">🥑</span>
+                        Gerar PIX
+                      </motion.button>
+                    </div>
+                  </div>
+                ) : loadingPix ? (
+                  <div className="flex justify-center py-4 mb-3">
+                    <motion.div animate={{ rotate: 360 }} transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}>
+                      <RefreshCw className="w-5 h-5 text-muted-foreground" />
+                    </motion.div>
+                  </div>
+                ) : pixData ? (
+                  <div className="space-y-3 mb-3">
+                    {pixData.qr_code_url && (
+                      <div className="flex justify-center">
+                        <div className="bg-foreground p-2.5 rounded-xl">
+                          <img src={pixData.qr_code_url} alt="QR Code Pix" className="w-36 h-36 object-contain" />
+                        </div>
+                      </div>
+                    )}
+                    {pixData.pix_copy_paste && (
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 bg-secondary rounded-lg px-3 py-2 text-xs text-muted-foreground font-mono truncate border border-border/40">
+                          {pixData.pix_copy_paste}
+                        </div>
+                        <motion.button whileTap={{ scale: 0.9 }} onClick={handleCopyPix}
+                          className="shrink-0 px-3 py-2 rounded-lg bg-primary text-primary-foreground font-display text-xs font-semibold flex items-center gap-1.5">
+                          {pixCopied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                          {pixCopied ? 'Copiado!' : 'Copiar'}
+                        </motion.button>
+                      </div>
+                    )}
+                    {pixData.payment_url && (
+                      <a href={pixData.payment_url} target="_blank" rel="noopener noreferrer"
+                        className="block text-center text-xs text-primary underline font-display">
+                        Ou pague pelo site do AbacatePay →
+                      </a>
+                    )}
+                  </div>
+                ) : (
+                  <motion.button
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => handleOpenDonorForm(500)}
+                    className="flex w-full mb-3 py-3 rounded-xl bg-accent text-accent-foreground font-display font-semibold text-sm items-center justify-center gap-2 transition-all"
+                  >
+                    <span className="text-lg">🥑</span>
+                    Doar via Pix
+                  </motion.button>
+                )}
                 <div className="flex flex-wrap gap-2">
                   <motion.button whileTap={{ scale: 0.97 }} onClick={() => handleShare('whatsapp')}
                     className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-accent text-accent-foreground font-display text-xs font-semibold">

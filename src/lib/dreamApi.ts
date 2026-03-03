@@ -1,4 +1,7 @@
-const API_BASE = 'https://api.jerry.com.br';
+// Usa o mesmo domínio do frontend (jerry.com.br) para evitar problemas de SSL
+// e certificado no subdomínio api.jerry.com.br.
+// Ambos apontam para o mesmo servidor e public_html/.
+const API_BASE = 'https://jerry.com.br';
 
 // Timeout wrapper for fetch requests
 function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = 15000): Promise<Response> {
@@ -273,11 +276,29 @@ export interface BillingResponse {
   mock: boolean;
 }
 
-export async function createBilling(amountCents?: number, dreamId?: number, description?: string): Promise<BillingResponse> {
+export interface CustomerData {
+  customer_name?: string;
+  customer_email?: string;
+  customer_phone?: string;
+  customer_tax_id: string; // CPF (11 dígitos) ou CNPJ (14 dígitos) — obrigatório no modo real
+}
+
+export async function createBilling(
+  amountCents?: number,
+  dreamId?: number,
+  description?: string,
+  customer?: CustomerData,
+): Promise<BillingResponse> {
   const body: any = {};
   if (amountCents) body.amount_cents = amountCents;
   if (dreamId) body.dream_id = dreamId;
   if (description) body.description = description;
+  if (customer) {
+    if (customer.customer_name)  body.customer_name  = customer.customer_name;
+    if (customer.customer_email) body.customer_email = customer.customer_email;
+    if (customer.customer_phone) body.customer_phone = customer.customer_phone;
+    body.customer_tax_id = customer.customer_tax_id;
+  }
 
   const res = await apiFetch('api/billing.php', {
     method: 'POST',

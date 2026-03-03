@@ -114,7 +114,7 @@ const Index = () => {
         symbols: result.interpretation || "",
         emotions: "",
         message: "",
-        thumbnailUrl: result.image_path ? `https://api.jerry.com.br/${result.image_path}` : heroBg,
+        thumbnailUrl: result.image_path ? `https://jerry.com.br/${result.image_path}` : heroBg,
         dreamId: dreamId.toString(),
       };
       setInterpretation(interp);
