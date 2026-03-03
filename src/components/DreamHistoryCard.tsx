@@ -127,13 +127,13 @@ const DreamHistoryCard = ({ dream, index, onClick, isExiting }: DreamHistoryCard
         <div className="flex-1 min-w-0 pb-1">
           <div className="flex items-center gap-1.5 mb-1">
             <span className="text-base">{emotionEmoji[dream.emotion] || "💭"}</span>
-            <span className="text-sm text-muted-foreground/60 capitalize">{dream.emotion}</span>
+            <span className="text-xs sm:text-sm text-muted-foreground/60 capitalize font-body">{dream.emotion}</span>
             {formattedDate && (
               <span className="text-xs text-muted-foreground/40 ml-auto">{formattedDate}</span>
             )}
           </div>
           <div className="flex items-center gap-2">
-            <p className="text-base text-foreground font-display font-medium truncate flex-1">
+            <p className="text-sm sm:text-base text-foreground font-body font-medium truncate flex-1">
               {dream.title}
             </p>
             {dream.interpretation && (
