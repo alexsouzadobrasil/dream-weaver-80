@@ -174,7 +174,7 @@ const HeroSection = ({ onStart, dreamHistory = [] }: HeroSectionProps) => {
     return () => clearInterval(timer);
   }, []);
 
-  const visibleDreams = dreamHistory.filter(d => d.interpretation && d.interpretation.trim().length > 0).slice(0, 3);
+  const visibleDreams = dreamHistory.filter(d => d.interpretation && d.interpretation.trim().length > 0);
 
   return (
     <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-gradient-mystic">
@@ -251,27 +251,28 @@ const HeroSection = ({ onStart, dreamHistory = [] }: HeroSectionProps) => {
           Interpretar meu sonho
         </motion.button>
 
-        {/* Dream history - max 3 */}
+        {/* Dream history - infinite scroll */}
         {visibleDreams.length > 0 &&
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.2 }}
-          className="mt-10 w-full space-y-3">
+          className="mt-10 w-full">
 
             <p className="text-sm text-muted-foreground mb-3 font-display">
               ✨ Sonhos interpretados
             </p>
-            <AnimatePresence mode="popLayout">
-              {visibleDreams.map((dream, i) =>
-            <DreamHistoryCard
-              key={dream.id}
-              dream={dream}
-              index={i}
-              onClick={() => {playClick();setSelectedDream(dream);}} />
-
-            )}
-            </AnimatePresence>
+            <div className="max-h-[45vh] overflow-y-auto space-y-3 pr-1 scrollbar-thin scrollbar-thumb-border/40 scrollbar-track-transparent">
+              <AnimatePresence mode="popLayout">
+                {visibleDreams.map((dream, i) =>
+                  <DreamHistoryCard
+                    key={dream.id}
+                    dream={dream}
+                    index={i}
+                    onClick={() => {playClick();setSelectedDream(dream);}} />
+                )}
+              </AnimatePresence>
+            </div>
           </motion.div>
         }
       </div>
