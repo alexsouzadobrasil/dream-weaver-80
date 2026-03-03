@@ -100,9 +100,6 @@ const DreamDetailModal = ({ dream, onClose }: DreamDetailModalProps) => {
                 </h2>
               </div>
 
-              {/* Reactions */}
-              <EmojiReactions dreamId={dream.id} />
-
               <div className="space-y-1">
                 <h3 className="text-xs uppercase tracking-wider text-muted-foreground/50 font-display">📝 Relato</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{dream.dreamText}</p>
@@ -118,8 +115,19 @@ const DreamDetailModal = ({ dream, onClose }: DreamDetailModalProps) => {
                 <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap">{dream.interpretation}</p>
               </div>
 
+              <div className="h-px bg-gradient-to-r from-transparent via-border/40 to-transparent" />
+
+              {/* Reactions */}
+              <div>
+                <h3 className="text-xs uppercase tracking-wider text-muted-foreground/50 font-display mb-2">👍 Reações</h3>
+                <EmojiReactions dreamId={dream.id} />
+              </div>
+
               {/* Comments */}
-              <DreamComments dreamId={dream.id} />
+              <div>
+                <h3 className="text-xs uppercase tracking-wider text-muted-foreground/50 font-display mb-2">💬 Comentários</h3>
+                <DreamComments dreamId={dream.id} />
+              </div>
 
               <div className="h-6" />
             </div>
