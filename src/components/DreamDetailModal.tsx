@@ -1,9 +1,11 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { X } from "lucide-react";
+import { X, Sparkles } from "lucide-react";
+import { useState } from "react";
 import type { DreamEntry } from "./DreamHistoryCard";
 import EmojiReactions from "./EmojiReactions";
 import DreamComments from "./DreamComments";
 import AudioPlayButton from "./AudioPlayButton";
+import { apiAssetUrl } from "@/lib/dreamApi";
 
 const emotionEmoji: Record<string, string> = {
   medo: "😨", alegria: "😊", tristeza: "😢", confusao: "🤔", paz: "😌", ansiedade: "😰",
@@ -15,6 +17,8 @@ interface DreamDetailModalProps {
 }
 
 const DreamDetailModal = ({ dream, onClose }: DreamDetailModalProps) => {
+  const [imgError, setImgError] = useState(false);
+
   if (!dream) return null;
 
   const formattedDate = (() => {
@@ -24,6 +28,8 @@ const DreamDetailModal = ({ dream, onClose }: DreamDetailModalProps) => {
       });
     } catch { return ""; }
   })();
+
+  const thumbnailUrl = apiAssetUrl(`uploads/dream_${dream.id}_thumbnail.webp`);
 
   return (
     <AnimatePresence>
@@ -59,6 +65,28 @@ const DreamDetailModal = ({ dream, onClose }: DreamDetailModalProps) => {
             </button>
 
             <div className="flex-1 overflow-y-auto p-5 pt-6 space-y-4 scrollbar-thin">
+              {/* Mystical Image */}
+              <motion.div
+                className="relative w-full aspect-video rounded-xl overflow-hidden border border-border/30"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15, duration: 0.5 }}
+              >
+                {!imgError ? (
+                  <img
+                    src={thumbnailUrl}
+                    alt={dream.title}
+                    className="w-full h-full object-cover"
+                    onError={() => setImgError(true)}
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-primary/20 via-accent/10 to-secondary flex items-center justify-center">
+                    <Sparkles className="w-12 h-12 text-primary/40 animate-pulse" />
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-transparent" />
+              </motion.div>
+
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-xl">{emotionEmoji[dream.emotion] || "💭"}</span>
