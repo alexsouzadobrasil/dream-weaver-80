@@ -117,7 +117,7 @@ export async function pollDreamStatus(
         const res = await apiFetch(`api/dream_status.php?id=${dreamId}`, {}, 10000);
         const json = await res.json();
         if (!json.success) throw new Error(json.error || 'Erro ao consultar status');
-        const data: DreamStatusResponse = json.data.dream;
+        const data: DreamStatusResponse = json.data;
         failCount = 0;
         onUpdate?.(data);
 
