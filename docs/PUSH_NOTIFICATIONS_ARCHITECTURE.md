@@ -779,13 +779,26 @@ function callOpenAI(string $url, array $body, bool $binary = false) {
 
 ## 🥑 Doações via Pix (AbacatePay)
 
-### `GET /api/donate.php` — Redirecionar para página de doação
+### `GET /api/donate.php` — Página de doação / QR Code
 
-**Propósito:** Cria uma cobrança Pix via AbacatePay e redireciona o usuário para a página de pagamento.
+**Aceita dois modos via query param `format`:**
 
-**Lógica:**
-1. Criar cobrança via `POST https://api.abacatepay.com/v1/billing/create`
-2. Redirecionar usuário para a `url` retornada
+#### Modo Redirect (padrão): `GET /api/donate.php`
+Cria cobrança Pix via AbacatePay e redireciona para a página de pagamento.
+
+#### Modo JSON: `GET /api/donate.php?format=json`
+Retorna dados do QR Code para renderização no frontend.
+
+**Response 200 (JSON):**
+```json
+{
+  "success": true,
+  "qr_code_url": "https://api.abacatepay.com/qr/abc123.png",
+  "pix_key": "00020126580014br.gov.bcb.pix...",
+  "amount": 500,
+  "description": "Doação Jerry - Entendendo seus sonhos"
+}
+```
 
 **Implementação PHP:**
 ```php
@@ -793,6 +806,7 @@ function callOpenAI(string $url, array $body, bool $binary = false) {
 require_once 'includes/cors.php';
 
 $ABACATEPAY_API_KEY = getenv('ABACATEPAY_API_KEY');
+$format = $_GET['format'] ?? 'redirect';
 
 $payload = [
     'frequency' => 'ONE_TIME',
@@ -803,7 +817,7 @@ $payload = [
             'name' => 'Doação Jerry - Entendendo seus sonhos',
             'description' => 'Doação voluntária para manter o serviço gratuito',
             'quantity' => 1,
-            'price' => 500, // R$ 5,00 em centavos (valor sugerido)
+            'price' => 500, // R$ 5,00 em centavos
         ]
     ],
     'returnUrl' => 'https://jerry.com.br',
@@ -827,6 +841,21 @@ curl_close($ch);
 
 if ($httpCode === 200) {
     $data = json_decode($result, true);
+    
+    if ($format === 'json') {
+        // Return QR code data for frontend rendering
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => true,
+            'qr_code_url' => $data['data']['qr_code_url'] ?? null,
+            'pix_key' => $data['data']['pix_key'] ?? $data['data']['identifier'] ?? null,
+            'amount' => 500,
+            'description' => 'Doação Jerry - Entendendo seus sonhos',
+        ]);
+        exit;
+    }
+    
+    // Redirect mode
     $paymentUrl = $data['data']['url'] ?? null;
     if ($paymentUrl) {
         header("Location: $paymentUrl");
@@ -834,7 +863,12 @@ if ($httpCode === 200) {
     }
 }
 
-// Fallback
+if ($format === 'json') {
+    http_response_code(500);
+    echo json_encode(['error' => 'Falha ao gerar QR Code', 'code' => 'DONATION_FAILED']);
+    exit;
+}
+
 header("Location: https://jerry.com.br?donation_error=true");
 ```
 

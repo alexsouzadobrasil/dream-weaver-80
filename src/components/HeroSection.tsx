@@ -227,9 +227,7 @@ const HeroSection = ({ onStart, dreamHistory = [] }: HeroSectionProps) => {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1.2 }}
-          className="text-4xl font-display font-bold text-gradient-gold mb-2 md:text-4xl">entendo seus sonhos
-
-
+          className="text-4xl font-display font-bold text-gradient-gold mb-2 md:text-4xl">Entendendo sonhos
         </motion.h1>
         
 
