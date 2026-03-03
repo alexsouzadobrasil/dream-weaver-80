@@ -42,7 +42,7 @@ const EmojiReactions = ({ dreamId, compact }: EmojiReactionsProps) => {
     setLoading(false);
   };
 
-  if (!isValid) return null;
+  // Always render buttons, even if API calls won't work for fake IDs
 
   const negativeReactions = totalReactions - positiveReactions;
 
