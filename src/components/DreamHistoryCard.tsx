@@ -1,5 +1,8 @@
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { MessageCircle } from "lucide-react";
 import AudioPlayButton from "./AudioPlayButton";
+import { fetchComments } from "@/lib/dreamApi";
 
 export interface DreamEntry {
   id: string;
@@ -46,6 +49,14 @@ interface DreamHistoryCardProps {
 
 const DreamHistoryCard = ({ dream, index, onClick, isExiting }: DreamHistoryCardProps) => {
   const blanketColor = emotionColors[dream.emotion] || "hsl(var(--secondary))";
+  const [commentCount, setCommentCount] = useState<number>(0);
+
+  useEffect(() => {
+    const numId = Number(dream.id);
+    if (!isNaN(numId) && numId > 0) {
+      fetchComments(numId).then(res => setCommentCount(res.total)).catch(() => {});
+    }
+  }, [dream.id]);
 
   const formattedDate = (() => {
     try {
@@ -136,6 +147,12 @@ const DreamHistoryCard = ({ dream, index, onClick, isExiting }: DreamHistoryCard
             <p className="text-sm sm:text-base text-foreground font-body font-medium truncate flex-1">
               {dream.title}
             </p>
+            {commentCount > 0 && (
+              <span className="flex items-center gap-0.5 text-xs text-muted-foreground/60">
+                <MessageCircle className="w-3.5 h-3.5" />
+                {commentCount}
+              </span>
+            )}
             {dream.interpretation && (
               <AudioPlayButton text={dream.interpretation} size="sm" />
             )}
