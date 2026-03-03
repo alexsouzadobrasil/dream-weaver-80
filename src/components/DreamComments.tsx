@@ -7,15 +7,16 @@ import { toast } from "sonner";
 
 interface DreamCommentsProps {
   dreamId: string;
+  initialExpanded?: boolean;
 }
 
-const DreamComments = ({ dreamId }: DreamCommentsProps) => {
+const DreamComments = ({ dreamId, initialExpanded = false }: DreamCommentsProps) => {
   const numericDreamId = parseInt(dreamId, 10);
   const isValidId = !isNaN(numericDreamId);
 
   const [comments, setComments] = useState<ApiComment[]>([]);
   const [text, setText] = useState("");
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(initialExpanded);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [total, setTotal] = useState(0);
@@ -35,7 +36,7 @@ const DreamComments = ({ dreamId }: DreamCommentsProps) => {
   }, [numericDreamId, isValidId]);
 
   useEffect(() => {
-    if (expanded && isValidId && comments.length === 0) {
+    if (expanded && isValidId) {
       loadComments();
     }
   }, [expanded, isValidId, loadComments]);
@@ -80,7 +81,7 @@ const DreamComments = ({ dreamId }: DreamCommentsProps) => {
     } catch { return ""; }
   };
 
-  if (!isValidId) return null;
+  // Always render UI, even for fake/invalid IDs
 
   return (
     <div className="mt-4">

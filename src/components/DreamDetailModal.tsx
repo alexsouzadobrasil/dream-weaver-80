@@ -126,7 +126,7 @@ const DreamDetailModal = ({ dream, onClose }: DreamDetailModalProps) => {
               {/* Comments */}
               <div>
                 <h3 className="text-xs uppercase tracking-wider text-muted-foreground/50 font-display mb-2">💬 Comentários</h3>
-                <DreamComments dreamId={dream.id} />
+                <DreamComments dreamId={dream.id} initialExpanded />
               </div>
 
               <div className="h-6" />
