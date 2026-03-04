@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { AnimatePresence } from "framer-motion";
 import HeroSection from "@/components/HeroSection";
-import DreamForm from "@/components/DreamForm";
+import DreamFormModal from "@/components/DreamFormModal";
 import DreamResult from "@/components/DreamResult";
 import LoadingOverlay from "@/components/LoadingOverlay";
 import heroBg from "@/assets/hero-bg.jpg";
@@ -43,7 +43,7 @@ const Index = () => {
   const [step, setStep] = useState<"hero" | "form" | "loading" | "result">("hero");
   const [interpretation, setInterpretation] = useState<any>(null);
   const [dreamHistory, setDreamHistory] = useState<DreamEntry[]>([]);
-  const formRef = useRef<HTMLDivElement>(null);
+  
   const online = useOnlineStatus();
 
   useEffect(() => {
@@ -91,7 +91,6 @@ const Index = () => {
   const handleStart = () => {
     playMysticAmbient();
     setStep("form");
-    setTimeout(() => formRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
   };
 
   const buildWaitingInterpretation = (title: string) => ({
@@ -203,7 +202,6 @@ const Index = () => {
   const handleNewDream = () => {
     playTransition();
     setStep("form");
-    setTimeout(() => formRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
   };
 
   const handleGoHome = () => {
@@ -217,7 +215,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-mystic">
-      {step === "hero" && (
+      {(step === "hero" || step === "form") && (
         <>
           <HeroSection onStart={handleStart} dreamHistory={dreamHistory} />
           <footer className="fixed bottom-2 right-3 z-50 pointer-events-none">
@@ -227,17 +225,16 @@ const Index = () => {
           </footer>
         </>
       )}
-      {step === "form" && (
-        <div ref={formRef} className="min-h-screen flex flex-col">
-          <button
-            onClick={handleGoHome}
-            className="self-start flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-sm font-display px-6 pt-6"
-          >
-            ← Início
-          </button>
-          <DreamForm onSubmitAudio={handleSubmitAudio} onSubmitText={handleSubmitText} isLoading={false} />
-        </div>
-      )}
+
+      {/* Dream Form Modal */}
+      <DreamFormModal
+        isOpen={step === "form"}
+        onClose={handleGoHome}
+        onSubmitAudio={handleSubmitAudio}
+        onSubmitText={handleSubmitText}
+        isLoading={false}
+      />
+
       {step === "loading" && <LoadingOverlay />}
       {step === "result" && interpretation && (
         <DreamResult interpretation={interpretation} onNewDream={handleNewDream} onGoHome={handleGoHome} />
