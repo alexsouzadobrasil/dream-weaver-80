@@ -47,7 +47,7 @@ const DreamFormModal = ({ isOpen, onClose, onSubmitAudio, onSubmitText, isLoadin
           {/* Modal content */}
           <motion.div
             className="relative w-full max-w-lg mx-auto overflow-hidden rounded-2xl border border-primary/20 shadow-[0_0_60px_hsl(var(--primary)/0.15)]"
-            style={{ maxHeight: "90vh" }}
+            style={{ height: "90vh", maxHeight: "90vh" }}
             initial={{ opacity: 0, scale: 0.85, y: 60 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 40 }}
