@@ -340,7 +340,7 @@ const DreamForm = ({ onSubmitAudio, onSubmitText, isLoading }: DreamFormProps) =
                       className="w-full py-4 rounded-xl bg-primary text-primary-foreground font-display font-semibold text-base flex items-center justify-center gap-2 glow-gold disabled:opacity-50"
                     >
                       <Send className="w-5 h-5" />
-                      Enviar áudio
+                      Enviar
                     </motion.button>
                   )}
                   <motion.button
